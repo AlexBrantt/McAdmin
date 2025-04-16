@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZibCraft Админка</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 2rem;
+        }
+        .main-container {
+            display: flex;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .command-form {
+            flex: 1;
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .players-sidebar {
+            width: 300px;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+        .response-box {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            white-space: pre-wrap;
+            display: none;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 1rem;
+        }
+        .player-list {
+            margin-top: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .player-item {
+            padding: 0.5rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .player-name {
+            flex: 1;
+            margin-right: 0.5rem;
+        }
+        .player-actions {
+            display: flex;
+            gap: 0.25rem;
+        }
+        .player-actions .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        .player-item:last-child {
+            border-bottom: none;
+        }
+        .refresh-btn {
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        .player-count {
+            text-align: center;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .role-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+        }
+        .role-badge.superuser {
+            background-color: #dc3545;
+        }
+        .role-badge.admin {
+            background-color: #0d6efd;
+        }
+        .role-badge.moder {
+            background-color: #198754;
+        }
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            .players-sidebar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-container">
+            <div class="players-sidebar">
+                <h3>Список игроков</h3>
+                <button class="btn btn-outline-primary refresh-btn" id="refreshPlayers">
+                    Обновить
+                </button>
+                <div class="player-count" id="playerCount">
+                    <div class="text-center text-muted">Загрузка...</div>
+                </div>
+                <div class="player-list" id="playerList">
+                    <div class="text-center text-muted">Загрузка списка игроков...</div>
+                </div>
+            </div>
+            
+            <div class="command-form">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="text-center mb-0">RCON консоль</h1>
+                    <div>
+                        <span id="userInfo" class="me-2"></span>
+                        <a href="/users" class="btn btn-outline-primary me-2" id="usersBtn" style="display: none;">
+                            <i class="bi bi-people"></i> Пользователи
+                        </a>
+                        <a href="/logout" class="btn btn-outline-danger">
+                            <i class="bi bi-box-arrow-right"></i> Выйти
+                        </a>
+                    </div>
+                </div>
+                <form id="commandForm">
+                    <div class="mb-3">
+                        <label for="command" class="form-label">Введите команду:</label>
+                        <input type="text" class="form-control" id="command" name="command" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Отправить</button>
+                </form>
+                <div class="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                </div>
+                <div class="response-box" id="responseBox"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Функция для получения информации о текущем пользователе
+        async function getUserInfo() {
+            try {
+                const response = await fetch('/api/user_info');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const userInfo = document.getElementById('userInfo');
+                    const usersBtn = document.getElementById('usersBtn');
+                    
+                    // Определяем класс для бейджа роли
+                    let roleClass = '';
+                    let roleName = '';
+                    
+                    switch(data.role) {
+                        case 'superuser':
+                            roleClass = 'superuser';
+                            roleName = 'Суперпользователь';
+                            break;
+                        case 'admin':
+                            roleClass = 'admin';
+                            roleName = 'Администратор';
+                            break;
+                        case 'moder':
+                            roleClass = 'moder';
+                            roleName = 'Модератор';
+                            break;
+                        default:
+                            roleClass = 'secondary';
+                            roleName = data.role;
+                    }
+                    
+                    // Отображаем информацию о пользователе
+                    userInfo.innerHTML = `
+                        <span class="fw-bold">${data.username}</span>
+                        <span class="badge role-badge ${roleClass}">${roleName}</span>
+                    `;
+                    
+                    // Показываем кнопку управления пользователями только для суперпользователей
+                    if (data.role === 'superuser') {
+                        usersBtn.style.display = 'inline-block';
+                    } else {
+                        usersBtn.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка при получении информации о пользователе:', error);
+            }
+        }
+
+        // Функция для обновления списка игроков
+        async function updatePlayerList() {
+            const playerList = document.getElementById('playerList');
+            const playerCount = document.getElementById('playerCount');
+            
+            playerList.innerHTML = '<div class="text-center text-muted">Загрузка списка игроков...</div>';
+            playerCount.innerHTML = '<div class="text-center text-muted">Загрузка...</div>';
+            
+            try {
+                const response = await fetch('/send_command', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'command=list'
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    playerList.innerHTML = `<div class="text-danger">❌ Ошибка: ${data.error}</div>`;
+                    playerCount.innerHTML = '';
+                } else {
+                    // Парсим ответ команды list
+                    const responseText = data.response;
+                    
+                    // Извлекаем информацию о количестве игроков
+                    const playersMatch = responseText.match(/Сейчас (\d+) из (\d+) игроков на сервере\./);
+                    
+                    if (playersMatch) {
+                        const [_, currentPlayers, maxPlayers] = playersMatch;
+                        
+                        // Обновляем счетчик игроков (без кнопок действий)
+                        playerCount.innerHTML = `
+                            <strong>${currentPlayers}</strong> из <strong>${maxPlayers}</strong> игроков онлайн
+                        `;
+                        
+                        // Если есть игроки, показываем их список
+                        if (currentPlayers > 0) {
+                            // Разделяем ответ на строки и пропускаем первую строку с количеством
+                            const lines = responseText.split('\n');
+                            
+                            // Находим индекс строки с количеством игроков
+                            let playerStartIndex = 0;
+                            for (let i = 0; i < lines.length; i++) {
+                                if (lines[i].includes('Сейчас') && lines[i].includes('игроков на сервере')) {
+                                    playerStartIndex = i + 1;
+                                    break;
+                                }
+                            }
+                            
+                            // Получаем только строки с игроками
+                            const playerLines = lines.slice(playerStartIndex);
+                            
+                            // Создаем HTML для списка игроков
+                            let playersHtml = '';
+                            
+                            // Обрабатываем каждую строку с игроками
+                            for (const line of playerLines) {
+                                if (line.trim()) {
+                                    // Проверяем, содержит ли строка запятые (список игроков в одну строку)
+                                    if (line.includes(',')) {
+                                        // Разделяем строку по запятым и обрабатываем каждого игрока
+                                        const players = line.split(',').map(p => p.trim()).filter(p => p);
+                                        
+                                        for (const player of players) {
+                                            // Заменяем "default:" на эмоджи игрока
+                                            const playerName = player.replace(/^default:\s*/, '🔹 ');
+                                            // Извлекаем имя игрока без префикса
+                                            const cleanName = playerName.replace(/^🔹\s*/, '');
+                                            
+                                            // Добавляем элемент игрока с кнопками действий
+                                            playersHtml += `
+                                                <div class="player-item">
+                                                    <span class="player-name">🔹 ${cleanName}</span>
+                                                    <div class="player-actions">
+                                                        <button class="btn btn-sm btn-outline-danger" title="Забанить" onclick="sendCommand('ban ${cleanName}')">
+                                                            <i class="bi bi-shield-x"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-warning" title="Кикнуть" onclick="sendCommand('kick ${cleanName}')">
+                                                            <i class="bi bi-box-arrow-right"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-success" title="Телепортировать на спавн" onclick="sendCommand('spawn ${cleanName}')">
+                                                            <i class="bi bi-house"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }
+                                    } else {
+                                        // Обрабатываем одиночного игрока как раньше
+                                        const playerName = line.trim().replace(/^default:\s*/, '');
+                                        const cleanName = playerName;
+                                        
+                                        playersHtml += `
+                                            <div class="player-item">
+                                                <span class="player-name">🔹 ${cleanName}</span>
+                                                <div class="player-actions">
+                                                    <button class="btn btn-sm btn-outline-danger" title="Забанить" onclick="sendCommand('ban ${cleanName}')">
+                                                        <i class="bi bi-shield-x"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-warning" title="Кикнуть" onclick="sendCommand('kick ${cleanName}')">
+                                                        <i class="bi bi-box-arrow-right"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-success" title="Телепортировать на спавн" onclick="sendCommand('spawn ${cleanName}')">
+                                                        <i class="bi bi-house"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }
+                                }
+                            }
+                            
+                            // Обновляем список игроков
+                            playerList.innerHTML = playersHtml || '<div class="text-center text-muted">Нет игроков онлайн</div>';
+                        } else {
+                            playerList.innerHTML = '<div class="text-center text-muted">Нет игроков онлайн</div>';
+                        }
+                    } else {
+                        playerList.innerHTML = '<div class="text-center text-muted">Не удалось получить список игроков</div>';
+                        playerCount.innerHTML = '';
+                    }
+                }
+            } catch (error) {
+                playerList.innerHTML = '<div class="text-danger">❌ Ошибка при получении списка игроков</div>';
+                playerCount.innerHTML = '';
+            }
+        }
+
+        // Функция для отправки команды
+        async function sendCommand(command) {
+            const responseBox = document.getElementById('responseBox');
+            const loading = document.querySelector('.loading');
+            
+            loading.style.display = 'block';
+            responseBox.style.display = 'none';
+            
+            try {
+                const response = await fetch('/send_command', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `command=${encodeURIComponent(command)}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    responseBox.textContent = `❌ Ошибка: ${data.error}`;
+                } else {
+                    responseBox.textContent = data.response;
+                }
+                
+                responseBox.style.display = 'block';
+                
+                // Если команда была list, обновляем список игроков
+                if (command.trim().toLowerCase() === 'list') {
+                    updatePlayerList();
+                }
+            } catch (error) {
+                responseBox.textContent = '❌ Ошибка при отправке команды';
+                responseBox.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // Обработчик отправки команды
+        document.getElementById('commandForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const command = document.getElementById('command').value;
+            await sendCommand(command);
+        });
+
+        // Обработчик кнопки обновления списка игроков
+        document.getElementById('refreshPlayers').addEventListener('click', updatePlayerList);
+
+        // Загружаем информацию о пользователе и список игроков при загрузке страницы
+        getUserInfo();
+        updatePlayerList();
+    </script>
+</body>
+</html> 
