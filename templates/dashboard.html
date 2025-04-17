@@ -524,6 +524,52 @@
         </div>
     </div>
 
+    <!-- Модальное окно для подтверждения кика -->
+    <div class="modal fade" id="kickPlayerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Подтверждение кика</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Вы уверены, что хотите кикнуть игрока <span id="kickPlayerName" class="fw-bold"></span>?</p>
+                    <div class="mb-3">
+                        <label for="kickReason" class="form-label">Причина кика:</label>
+                        <input type="text" class="form-control" id="kickReason" placeholder="Укажите причину кика">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-warning" id="confirmKickBtn">Кикнуть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для подтверждения бана -->
+    <div class="modal fade" id="banPlayerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Подтверждение бана</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Вы уверены, что хотите забанить игрока <span id="banPlayerName" class="fw-bold"></span>?</p>
+                    <div class="mb-3">
+                        <label for="banReason" class="form-label">Причина бана:</label>
+                        <input type="text" class="form-control" id="banReason" placeholder="Укажите причину бана">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-danger" id="confirmBanBtn">Забанить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Функция для получения информации о текущем пользователе
@@ -810,8 +856,30 @@
             }, 5000);
         }
 
-        // Функция для обновления списка онлайн игроков
-        async function updateOnlineList() {
+        // Глобальные переменные для хранения имени игрока
+        let currentKickPlayer = '';
+        let currentBanPlayer = '';
+
+        // Функция для показа модального окна кика
+        function showKickModal(playerName) {
+            currentKickPlayer = playerName;
+            document.getElementById('kickPlayerName').textContent = playerName;
+            document.getElementById('kickReason').value = '';
+            const modal = new bootstrap.Modal(document.getElementById('kickPlayerModal'));
+            modal.show();
+        }
+
+        // Функция для показа модального окна бана
+        function showBanModal(playerName) {
+            currentBanPlayer = playerName;
+            document.getElementById('banPlayerName').textContent = playerName;
+            document.getElementById('banReason').value = '';
+            const modal = new bootstrap.Modal(document.getElementById('banPlayerModal'));
+            modal.show();
+        }
+
+        // Обновляем функцию обновления списка онлайн игроков
+        function updateOnlineList() {
             const onlineList = document.getElementById('onlineList');
             const loading = document.getElementById('onlineLoading');
             
@@ -819,92 +887,75 @@
             onlineList.innerHTML = '<div class="text-center text-muted">Загрузка списка...</div>';
             
             try {
-                const response = await fetch('/send_command', {
+                fetch('/send_command', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
                     body: 'command=list'
-                });
-                
-                const data = await response.json();
-                
-                if (data.error) {
-                    onlineList.innerHTML = `<div class="text-danger">❌ Ошибка: ${data.error}</div>`;
-                } else {
-                    // Парсим ответ команды list
-                    const responseText = data.response;
-                    console.log('Полный ответ сервера:', responseText); // Для отладки
-                    
-                    // Извлекаем информацию о количестве игроков
-                    const countMatch = responseText.match(/Сейчас (\d+) из (\d+) игроков на сервере/);
-                    let countHtml = '';
-                    if (countMatch) {
-                        countHtml = `<div class="text-center mb-3">Сейчас ${countMatch[1]} из ${countMatch[2]} игроков на сервере</div>`;
-                    }
-                    
-                    // Пытаемся извлечь список игроков
-                    let players = [];
-                    
-                    // Разбиваем ответ на строки
-                    const lines = responseText.split('\n');
-                    console.log('Строки ответа:', lines); // Для отладки
-                    
-                    // Ищем строку с именами игроков
-                    for (const line of lines) {
-                        if (line.includes('default:')) {
-                            console.log('Найдена строка с игроками:', line); // Для отладки
-                            
-                            // Извлекаем имена игроков
-                            const playersText = line.replace('[default:', '').replace(']', '').trim();
-                            console.log('Извлеченный текст с игроками:', playersText); // Для отладки
-                            
-                            // Разбиваем на отдельных игроков
-                            players = playersText.split(',').map(player => player.trim());
-                            
-                            // Если первый игрок содержит "default:", убираем его
-                            if (players.length > 0 && players[0].includes('default:')) {
-                                players[0] = players[0].replace('default:', '').trim();
-                            }
-                            
-                            console.log('Обработанные имена игроков:', players); // Для отладки
-                            break;
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        onlineList.innerHTML = `<div class="text-danger">❌ Ошибка: ${data.error}</div>`;
+                    } else {
+                        const responseText = data.response;
+                        const countMatch = responseText.match(/Сейчас (\d+) из (\d+) игроков на сервере/);
+                        let countHtml = '';
+                        if (countMatch) {
+                            countHtml = `<div class="text-center mb-3">Сейчас ${countMatch[1]} из ${countMatch[2]} игроков на сервере</div>`;
                         }
-                    }
-                    
-                    console.log('Итоговый список игроков:', players); // Для отладки
-                    
-                    // Создаем HTML для списка игроков
-                    let playersHtml = countHtml;
-                    
-                    // Добавляем каждого игрока в список
-                    players.forEach(playerName => {
-                        playersHtml += `
-                            <div class="online-item">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span>🔹 ${playerName}</span>
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-outline-success" onclick="sendCommand('spawn ${playerName}')">
-                                            <i class="bi bi-arrow-up-circle"></i> На спавн
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-warning" onclick="sendCommand('kick ${playerName}')">
-                                            <i class="bi bi-box-arrow-right"></i> Кик
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="sendCommand('ban ${playerName}')">
-                                            <i class="bi bi-shield-x"></i> Бан
-                                        </button>
+                        
+                        let players = [];
+                        const lines = responseText.split('\n');
+                        
+                        for (const line of lines) {
+                            if (line.includes('default:')) {
+                                const playersText = line.replace('[default:', '').replace(']', '').trim();
+                                players = playersText.split(',').map(player => player.trim());
+                                if (players.length > 0 && players[0].includes('default:')) {
+                                    players[0] = players[0].replace('default:', '').trim();
+                                }
+                                break;
+                            }
+                        }
+                        
+                        let playersHtml = countHtml;
+                        
+                        players.forEach(playerName => {
+                            playersHtml += `
+                                <div class="online-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>🔹 ${playerName}</span>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-success" onclick="sendCommand('spawn ${playerName}')">
+                                                <i class="bi bi-arrow-up-circle"></i> На спавн
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-warning" onclick="showKickModal('${playerName}')">
+                                                <i class="bi bi-box-arrow-right"></i> Кик
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="showBanModal('${playerName}')">
+                                                <i class="bi bi-shield-x"></i> Бан
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        `;
-                    });
-                    
-                    onlineList.innerHTML = playersHtml || '<div class="text-center text-muted">Нет игроков онлайн</div>';
-                }
+                            `;
+                        });
+                        
+                        onlineList.innerHTML = playersHtml || '<div class="text-center text-muted">Нет игроков онлайн</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка при получении списка игроков:', error);
+                    onlineList.innerHTML = '<div class="text-danger">❌ Ошибка при получении списка игроков</div>';
+                })
+                .finally(() => {
+                    loading.style.display = 'none';
+                });
             } catch (error) {
-                console.error('Ошибка при получении списка игроков:', error); // Для отладки
+                console.error('Ошибка при получении списка игроков:', error);
                 onlineList.innerHTML = '<div class="text-danger">❌ Ошибка при получении списка игроков</div>';
-            } finally {
                 loading.style.display = 'none';
             }
         }
@@ -1005,6 +1056,17 @@
                 const roleClass = log.role ? log.role.toLowerCase() : 'unknown';
                 const roleName = formatRole(log.role);
                 
+                // Форматируем детали в зависимости от типа действия
+                let formattedDetails = '';
+                if (log.details) {
+                    if (log.action.toLowerCase().includes('команд')) {
+                        // Для команд форматируем ответ сервера
+                        formattedDetails = log.details;
+                    } else {
+                        formattedDetails = log.details;
+                    }
+                }
+                
                 return `
                     <div class="log-entry ${type}">
                         <div class="log-header">
@@ -1015,10 +1077,9 @@
                             </div>
                         </div>
                         <div class="action">
-                            <i class="bi ${icon}"></i>
-                            ${log.action}
+                            <i class="bi ${icon}"></i>${log.action}
                         </div>
-                        ${log.details ? `<div class="details">${log.details}</div>` : ''}
+                        ${formattedDetails ? `<div class="details">${formattedDetails}</div>` : ''}
                     </div>
                 `;
             }).join('');
@@ -1146,6 +1207,22 @@
                 } finally {
                     loading.style.display = 'none';
                 }
+            });
+
+            // Обработчик для подтверждения кика
+            document.getElementById('confirmKickBtn').addEventListener('click', () => {
+                const reason = document.getElementById('kickReason').value.trim() || 'Кикнут с сервера';
+                sendCommand(`kick ${currentKickPlayer} ${reason}`);
+                bootstrap.Modal.getInstance(document.getElementById('kickPlayerModal')).hide();
+                setTimeout(updateOnlineList, 1000);
+            });
+
+            // Обработчик для подтверждения бана
+            document.getElementById('confirmBanBtn').addEventListener('click', () => {
+                const reason = document.getElementById('banReason').value.trim() || 'Бан';
+                sendCommand(`ban ${currentBanPlayer} ${reason}`);
+                bootstrap.Modal.getInstance(document.getElementById('banPlayerModal')).hide();
+                setTimeout(updateOnlineList, 1000);
             });
         });
     </script>

@@ -88,9 +88,9 @@ def send_rcon_command(command: str) -> str:
         with MCRcon(RCON_HOST, RCON_PASSWORD, RCON_PORT) as mcr:
             response = mcr.command(command)
             if not response or response.strip() == "":
-                return "✅ Команда успешно выполнена"
+                return "Команда успешно выполнена"
             cleaned_response = clean_minecraft_colors(response)
-            return f"✅ Ответ сервера:\n{cleaned_response}"
+            return cleaned_response
     except Exception as e:
         return f"❌ Ошибка: {str(e)}"
 
@@ -210,6 +210,10 @@ def send_command():
     try:
         # Отправляем команду на сервер
         response = send_rcon_command(command)
+
+        # Добавляем галочку к ответу сервера, если её нет
+        if not response.startswith('❌'):
+            response = f"✅ {response}"
 
         # Логируем действие пользователя, исключая whitelist list
         if is_rcon_command or (
@@ -566,8 +570,6 @@ def get_logs():
         logs = get_all_logs()
         logs_list = []
         for log in logs:
-            # Добавляем отладочный вывод
-            print(f"Log entry: {dict(log)}")
             log_dict = {
                 'id': log['id'],
                 'timestamp': (
