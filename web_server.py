@@ -175,8 +175,9 @@ def send_command():
         if not response.startswith('❌'):
             response = f"✅ {response}"
 
-        # Логируем действие пользователя
-        add_log(user['id'], f"Выполнил команду: {command}", response)
+        # Логируем действие пользователя только если это не команды whitelist list или list
+        if command.lower() not in ['whitelist list', 'list']:
+            add_log(user['id'], f"Выполнил команду: {command}", response)
 
         return jsonify({'response': response})
     except Exception as e:
