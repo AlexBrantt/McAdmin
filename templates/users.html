@@ -364,16 +364,16 @@
                         </div>
                         <div class="user-actions">
                             ${canManage ? `
-                                <button onclick="showChangeUsernameModal(${user.id}, '${user.username}')" class="action-btn edit" title="Изменить имя">
+                                <button onclick="openChangeUsernameModal(${user.id}, '${user.username}')" class="action-btn edit" title="Изменить имя">
                                     <i class="bi bi-person"></i>
                                 </button>
-                                <button onclick="showChangePasswordModal(${user.id})" class="action-btn edit" title="Изменить пароль">
+                                <button onclick="openChangePasswordModal(${user.id}, '${user.username}')" class="action-btn edit" title="Изменить пароль">
                                     <i class="bi bi-key"></i>
                                 </button>
-                                <button onclick="showChangeRoleModal(${user.id}, '${user.role}')" class="action-btn edit" title="Изменить роль">
+                                <button onclick="openChangeRoleModal(${user.id}, '${user.username}', '${user.role}')" class="action-btn edit" title="Изменить роль">
                                     <i class="bi bi-shield"></i>
                                 </button>
-                                <button onclick="deleteUser(${user.id})" class="action-btn delete" title="Удалить">
+                                <button onclick="openDeleteUserModal(${user.id}, '${user.username}')" class="action-btn delete" title="Удалить">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             ` : ''}
@@ -400,6 +400,7 @@
         document.getElementById('userId').value = userId;
         document.getElementById('changePasswordModalLabel').textContent = `Изменить пароль для ${username}`;
         document.getElementById('newPassword').value = '';
+        document.getElementById('confirmNewPassword').value = '';
         
         const modal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
         modal.show();
@@ -534,6 +535,7 @@
             try {
                 const formData = new FormData();
                 formData.append('password', newPassword);
+                formData.append('confirm_password', confirmNewPassword);
                 
                 const response = await fetch(`/api/users/${userId}/password`, {
                     method: 'POST',
