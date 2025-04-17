@@ -36,6 +36,7 @@ from models import (
     get_role_permissions,
     get_role_settings,
     get_user,
+    get_user_by_id,
     get_user_logs,
     remove_role_permission,
     update_role_color,
@@ -383,18 +384,21 @@ def update_password(user_id):
 
 @app.route('/api/users/<int:user_id>/role', methods=['POST'])
 @login_required
-def change_user_role(user_id):
+def update_user_role(user_id):
     if 'username' not in session:
         return jsonify(
             {'success': False, 'message': 'Пользователь не авторизован'}
         )
 
-    user = get_user(session['username'])
-    if not user:
-        return jsonify({'success': False, 'message': 'Пользователь не найден'})
+    # Получаем информацию о текущем пользователе
+    current_user = get_user(session['username'])
+    if not current_user:
+        return jsonify(
+            {'success': False, 'message': 'Текущий пользователь не найден'}
+        )
 
     # Проверяем, имеет ли пользователь права на изменение ролей
-    if user['role'] not in [ROLE_SUPERUSER, ROLE_ADMIN]:
+    if current_user['role'] not in [ROLE_SUPERUSER, ROLE_ADMIN]:
         return jsonify(
             {
                 'success': False,
@@ -407,12 +411,12 @@ def change_user_role(user_id):
         return jsonify({'success': False, 'message': 'Роль не указана'})
 
     # Получаем информацию о пользователе, роль которого пытаемся изменить
-    user_to_change = get_user(user_id)
+    user_to_change = get_user_by_id(user_id)
     if not user_to_change:
         return jsonify({'success': False, 'message': 'Пользователь не найден'})
 
     # Проверяем, может ли пользователь изменить роль указанного пользователя
-    if user['role'] == 'admin' and role != 'moder':
+    if current_user['role'] == ROLE_ADMIN and role != ROLE_MODER:
         return jsonify(
             {
                 'success': False,
@@ -423,22 +427,16 @@ def change_user_role(user_id):
     if role not in [ROLE_SUPERUSER, ROLE_ADMIN, ROLE_MODER]:
         return jsonify({'success': False, 'message': 'Неверная роль'})
 
-    if change_user_role(user_id, role):
+    success, message = change_user_role(user_id, role)
+
+    if success:
         # Логируем действие пользователя
         add_log(
-            user['id'],
+            current_user['id'],
             f"Изменил роль пользователя {user_to_change['username']} на {role}",
         )
-        return jsonify(
-            {'success': True, 'message': 'Роль пользователя успешно изменена'}
-        )
-    else:
-        return jsonify(
-            {
-                'success': False,
-                'message': 'Ошибка при изменении роли пользователя',
-            }
-        )
+
+    return jsonify({'success': success, 'message': message})
 
 
 @app.route('/api/users/<int:user_id>/username', methods=['POST'])
@@ -449,12 +447,18 @@ def update_username(user_id):
             {'success': False, 'message': 'Пользователь не авторизован'}
         )
 
-    user = get_user(session['username'])
-    if not user:
-        return jsonify({'success': False, 'message': 'Пользователь не найден'})
+    # Получаем информацию о текущем пользователе
+    current_user = get_user(session['username'])
+    if not current_user:
+        return jsonify(
+            {'success': False, 'message': 'Текущий пользователь не найден'}
+        )
 
     # Проверяем, имеет ли пользователь права на изменение имен пользователей
-    if user['role'] != ROLE_SUPERUSER and user['id'] != user_id:
+    if (
+        current_user['role'] != ROLE_SUPERUSER
+        and current_user['id'] != user_id
+    ):
         return jsonify(
             {
                 'success': False,
@@ -463,23 +467,28 @@ def update_username(user_id):
         )
 
     new_username = request.form.get('username', '')
-
     if not new_username:
         return jsonify(
             {'success': False, 'message': 'Новое имя пользователя обязательно'}
         )
 
     # Получаем информацию о пользователе, имя которого пытаемся изменить
-    user_to_change = get_user(user_id)
+    print(f"Looking up user with ID: {user_id}")  # Отладочный вывод
+    user_to_change = get_user_by_id(user_id)
+    print(f"Found user: {user_to_change}")  # Отладочный вывод
+
     if not user_to_change:
         return jsonify({'success': False, 'message': 'Пользователь не найден'})
 
     success, message = change_username(user_id, new_username)
+    print(
+        f"Change username result: success={success}, message={message}"
+    )  # Отладочный вывод
 
     if success:
         # Логируем действие пользователя
         add_log(
-            user['id'],
+            current_user['id'],
             f"Изменил имя пользователя {user_to_change['username']} на {new_username}",
         )
 

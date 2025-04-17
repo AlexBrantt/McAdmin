@@ -110,6 +110,30 @@ def get_user(username):
     return {'id': user[0], 'username': user[1], 'role': user[2]}
 
 
+def get_user_by_id(user_id):
+    """Получает информацию о пользователе по ID."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'SELECT id, username, role FROM users WHERE id = ?',
+            (int(user_id),),
+        )
+        user = cursor.fetchone()
+
+        conn.close()
+
+        if not user:
+            return None
+
+        return {'id': user[0], 'username': user[1], 'role': user[2]}
+    except Exception as e:
+        print(f"Error in get_user_by_id: {e}")  # Добавляем отладочный вывод
+        conn.close()
+        return None
+
+
 def get_all_users():
     """Получает список всех пользователей, отсортированный по ролям и дате создания."""
     conn = sqlite3.connect(DB_PATH)
