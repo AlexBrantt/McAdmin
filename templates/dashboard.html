@@ -1,417 +1,670 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZibCraft Админка - Панель управления</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style>
-        :root {
-            --primary-color: #4361ee;
-            --secondary-color: #3f37c9;
-            --success-color: #4cc9f0;
-            --danger-color: #f72585;
-            --warning-color: #f9c74f;
-            --info-color: #4895ef;
-            --light-color: #f8f9fa;
-            --dark-color: #212529;
-            --border-radius: 10px;
-            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --transition: all 0.3s ease;
-        }
-        
-        body {
-            background-color: #f0f2f5;
-            padding-top: 2rem;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .main-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 2rem;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            transition: var(--transition);
-        }
-        
-        .main-container:hover {
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .nav-tabs {
-            margin-bottom: 1.5rem;
-            border-bottom: 2px solid #e9ecef;
-        }
-        
-        .nav-tabs .nav-link {
-            border: none;
-            color: #6c757d;
-            font-weight: 500;
-            padding: 0.75rem 1.25rem;
-            transition: var(--transition);
-        }
-        
-        .nav-tabs .nav-link:hover {
-            color: var(--primary-color);
-            border: none;
-        }
-        
-        .nav-tabs .nav-link.active {
-            color: var(--primary-color);
-            border: none;
-            border-bottom: 2px solid var(--primary-color);
-        }
-        
+{% extends "base.html" %}
+
+{% block title %}ZibCraft Админка - Панель управления{% endblock %}
+
+{% block styles %}
+<style>
+    :root {
+        --primary-color: #4361ee;
+        --secondary-color: #3f37c9;
+        --success-color: #4cc9f0;
+        --danger-color: #f72585;
+        --warning-color: #f9c74f;
+        --info-color: #4895ef;
+        --light-color: #f8f9fa;
+        --dark-color: #212529;
+        --border-radius: 10px;
+        --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --transition: all 0.3s ease;
+    }
+    
+    body {
+        background-color: #f0f2f5;
+        padding-top: 2rem;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .nav-tabs {
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .nav-tabs .nav-link {
+        border: none;
+        color: #6c757d;
+        font-weight: 500;
+        padding: 0.75rem 1.25rem;
+        transition: var(--transition);
+    }
+    
+    .nav-tabs .nav-link:hover {
+        color: var(--primary-color);
+        border: none;
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: var(--primary-color);
+        border: none;
+        border-bottom: 2px solid var(--primary-color);
+    }
+    
+    .tab-content {
+        padding: 1.5rem;
+        border: 1px solid #dee2e6;
+        border-radius: var(--border-radius);
+        background-color: #fff;
+        box-shadow: var(--box-shadow);
+    }
+    
+    .response-box {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        background-color: #f8f9fa;
+        white-space: pre-wrap;
+        display: none;
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .loading {
+        display: none;
+        text-align: center;
+        margin-top: 1rem;
+    }
+    
+    .role-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: 500;
+        color: white;
+    }
+    
+    .role-badge.superuser {
+        background-color: #dc3545;
+    }
+    
+    .role-badge.admin {
+        background-color: #0d6efd;
+    }
+    
+    .role-badge.moder {
+        background-color: #20c997;
+    }
+    
+    .role-badge.unknown {
+        background-color: #6c757d;
+    }
+    
+    .whitelist-form {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    
+    .whitelist-list, .online-list {
+        margin-top: 2rem;
+        max-height: 400px;
+        overflow-y: auto;
+        border-radius: var(--border-radius);
+        background-color: #f8f9fa;
+        padding: 1rem;
+    }
+    
+    .search-box {
+        position: sticky;
+        top: 0;
+        background: white;
+        padding: 0.5rem 0;
+        z-index: 1;
+        margin-bottom: 1rem;
+        border-radius: var(--border-radius);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .search-box .input-group-text {
+        background-color: #f8f9fa;
+        border-right: none;
+        border-radius: 20px 0 0 20px;
+    }
+    
+    .search-box .form-control {
+        border-left: none;
+        border-radius: 0 20px 20px 0;
+    }
+    
+    .search-box .form-control:focus {
+        box-shadow: none;
+        border-color: #ced4da;
+    }
+    
+    .whitelist-item, .online-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid #eee;
+        margin-bottom: 0.5rem;
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: var(--transition);
+    }
+    
+    .whitelist-item:hover, .online-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .whitelist-item:last-child, .online-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+    
+    .whitelist-item .btn, .online-item .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        border-radius: 20px;
+        transition: var(--transition);
+        font-weight: 600;
+    }
+    
+    .whitelist-item span, .online-item span {
+        font-size: 1rem;
+        color: #212529;
+    }
+    
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .btn-primary:hover {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+    }
+    
+    .btn-outline-primary {
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .btn-outline-danger {
+        color: var(--danger-color);
+        border-color: var(--danger-color);
+    }
+    
+    .btn-outline-danger:hover {
+        background-color: var(--danger-color);
+        border-color: var(--danger-color);
+    }
+    
+    .btn-outline-success {
+        color: var(--success-color);
+        border-color: var(--success-color);
+    }
+    
+    .btn-outline-success:hover {
+        background-color: var(--success-color);
+        border-color: var(--success-color);
+    }
+    
+    .btn-outline-warning {
+        color: var(--warning-color);
+        border-color: var(--warning-color);
+    }
+    
+    .btn-outline-warning:hover {
+        background-color: var(--warning-color);
+        border-color: var(--warning-color);
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        color: var(--dark-color);
+        font-weight: 600;
+    }
+    
+    .form-control {
+        border-radius: 20px;
+        padding: 0.5rem 1rem;
+        border: 1px solid #ced4da;
+        transition: var(--transition);
+    }
+    
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+    }
+    
+    .btn {
+        border-radius: 20px;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        transition: var(--transition);
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+    }
+    
+    .spinner-border {
+        color: var(--primary-color);
+    }
+    
+    @media (max-width: 768px) {
         .tab-content {
-            padding: 1.5rem;
-            border: 1px solid #dee2e6;
-            border-top: none;
-            border-radius: 0 0 var(--border-radius) var(--border-radius);
-            background-color: #fff;
-            margin-top: 20px;
-        }
-        
-        .response-box {
-            margin-top: 1rem;
             padding: 1rem;
-            border-radius: var(--border-radius);
-            background-color: #f8f9fa;
-            white-space: pre-wrap;
-            display: none;
-            border-left: 4px solid var(--primary-color);
-        }
-        
-        .loading {
-            display: none;
-            text-align: center;
-            margin-top: 1rem;
-        }
-        
-        .role-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            font-weight: 500;
-            color: white;
-        }
-        
-        .role-badge.superuser {
-            background-color: #dc3545;
-        }
-        
-        .role-badge.admin {
-            background-color: #0d6efd;
-        }
-        
-        .role-badge.moder {
-            background-color: #20c997;
-        }
-        
-        .role-badge.unknown {
-            background-color: #6c757d;
-        }
-        
-        .whitelist-form {
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        
-        .whitelist-list, .online-list {
-            margin-top: 2rem;
-            max-height: 400px;
-            overflow-y: auto;
-            border-radius: var(--border-radius);
-            background-color: #f8f9fa;
-            padding: 1rem;
-        }
-        
-        .search-box {
-            position: sticky;
-            top: 0;
-            background: white;
-            padding: 0.5rem 0;
-            z-index: 1;
-            margin-bottom: 1rem;
-            border-radius: var(--border-radius);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-        
-        .search-box .input-group-text {
-            background-color: #f8f9fa;
-            border-right: none;
-            border-radius: 20px 0 0 20px;
-        }
-        
-        .search-box .form-control {
-            border-left: none;
-            border-radius: 0 20px 20px 0;
-        }
-        
-        .search-box .form-control:focus {
-            box-shadow: none;
-            border-color: #ced4da;
-        }
-        
-        .whitelist-item, .online-item {
-            padding: 0.75rem;
-            border-bottom: 1px solid #eee;
-            margin-bottom: 0.5rem;
-            background-color: white;
-            border-radius: var(--border-radius);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            transition: var(--transition);
-        }
-        
-        .whitelist-item:hover, .online-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        
-        .whitelist-item:last-child, .online-item:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
         }
         
         .whitelist-item .btn, .online-item .btn {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-            border-radius: 20px;
-            transition: var(--transition);
-            font-weight: 600;
+            padding: 0.2rem 0.4rem;
+            font-size: 0.75rem;
         }
+    }
+    
+    .log-entry {
+        background: #fff;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .log-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .timestamp {
+        color: #888;
+        font-size: 0.9em;
+    }
+    
+    .username {
+        font-weight: 500;
+        color: #2c3e50;
+    }
+    
+    .action {
+        font-size: 1.1em;
+        margin-bottom: 8px;
+    }
+    
+    .action i {
+        margin-right: 8px;
+    }
+    
+    .details {
+        color: #666;
+        font-size: 0.95em;
+        padding-left: 24px;
+    }
+    
+    .log-entry.command {
+        border-left: 4px solid #0d6efd;
+    }
+    
+    .log-entry.user {
+        border-left: 4px solid #198754;
+    }
+    
+    .log-entry.system {
+        border-left: 4px solid #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Панель управления ZibCraft</h1>
+</div>
+
+<div class="nav nav-tabs" id="nav-tab" role="tablist">
+    <button class="nav-link active" id="nav-online-tab" data-bs-toggle="tab" data-bs-target="#nav-online" type="button" role="tab">
+        <i class="bi bi-people-fill"></i> Онлайн
+    </button>
+    <button class="nav-link" id="nav-whitelist-tab" data-bs-toggle="tab" data-bs-target="#nav-whitelist" type="button" role="tab">
+        <i class="bi bi-person-check-fill"></i> Белый список
+    </button>
+    <button class="nav-link" id="nav-logs-tab" data-bs-toggle="tab" data-bs-target="#nav-logs" type="button" role="tab">
+        <i class="bi bi-clock-history"></i> Логи
+    </button>
+    <button class="nav-link" id="nav-rcon-tab" data-bs-toggle="tab" data-bs-target="#nav-rcon" type="button" role="tab">
+        <i class="bi bi-terminal"></i> RCON консоль
+    </button>
+</div>
+
+<div class="tab-content" id="nav-tabContent">
+    <!-- Вкладка Онлайн -->
+    <div class="tab-pane fade show active" id="nav-online" role="tabpanel" aria-labelledby="nav-online-tab">
+        <h2 class="text-center mb-4">Игроки онлайн</h2>
+        <div class="d-flex justify-content-center mb-3">
+            <button class="btn btn-primary" onclick="updateOnlineList()">
+                <i class="bi bi-arrow-clockwise"></i> Обновить
+            </button>
+        </div>
+        <div class="online-list" id="onlineList">
+            <div class="text-center text-muted">Загрузка списка...</div>
+        </div>
+        <div class="loading" id="onlineLoading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Вкладка Whitelist -->
+    <div class="tab-pane fade" id="nav-whitelist" role="tabpanel" aria-labelledby="nav-whitelist-tab">
+        <h2 class="text-center mb-4">Управление Whitelist</h2>
+        <div class="whitelist-form">
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" id="whitelistUsername" placeholder="Введите ник игрока">
+                <button class="btn btn-primary" type="button" id="addToWhitelistBtn">
+                    <i class="bi bi-plus-circle"></i> Добавить
+                </button>
+            </div>
+        </div>
         
-        .whitelist-item span, .online-item span {
-            font-size: 1rem;
-            color: #212529;
-        }
-        
-        .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-        
-        .btn-primary:hover {
-            background-color: var(--secondary-color);
-            border-color: var(--secondary-color);
-        }
-        
-        .btn-outline-primary {
-            color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-        
-        .btn-outline-primary:hover {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-        
-        .btn-outline-danger {
-            color: var(--danger-color);
-            border-color: var(--danger-color);
-        }
-        
-        .btn-outline-danger:hover {
-            background-color: var(--danger-color);
-            border-color: var(--danger-color);
-        }
-        
-        .btn-outline-success {
-            color: var(--success-color);
-            border-color: var(--success-color);
-        }
-        
-        .btn-outline-success:hover {
-            background-color: var(--success-color);
-            border-color: var(--success-color);
-        }
-        
-        .btn-outline-warning {
-            color: var(--warning-color);
-            border-color: var(--warning-color);
-        }
-        
-        .btn-outline-warning:hover {
-            background-color: var(--warning-color);
-            border-color: var(--warning-color);
-        }
-        
-        h1, h2, h3, h4, h5, h6 {
-            color: var(--dark-color);
-            font-weight: 600;
-        }
-        
-        .form-control {
-            border-radius: 20px;
-            padding: 0.5rem 1rem;
-            border: 1px solid #ced4da;
-            transition: var(--transition);
-        }
-        
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
-        }
-        
-        .btn {
-            border-radius: 20px;
-            padding: 0.5rem 1rem;
-            font-weight: 500;
-            transition: var(--transition);
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .spinner-border {
-            color: var(--primary-color);
-        }
-        
-        @media (max-width: 768px) {
-            .main-container {
-                padding: 1rem;
-            }
-            
-            .nav-tabs .nav-link {
-                padding: 0.5rem 0.75rem;
-            }
-            
-            .tab-content {
-                padding: 1rem;
-            }
-            
-            .whitelist-item .btn, .online-item .btn {
-                padding: 0.2rem 0.4rem;
-                font-size: 0.75rem;
-            }
-        }
-        
-        .log-entry {
-            background: #fff;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .log-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .timestamp {
-            color: #888;
-            font-size: 0.9em;
-        }
-        
-        .username {
-            font-weight: 500;
-            color: #2c3e50;
-        }
-        
-        .action {
-            font-size: 1.1em;
-            margin-bottom: 8px;
-        }
-        
-        .action i {
-            margin-right: 8px;
-        }
-        
-        .details {
-            color: #666;
-            font-size: 0.95em;
-            padding-left: 24px;
-        }
-        
-        .log-entry.command {
-            border-left: 4px solid #0d6efd;
-        }
-        
-        .log-entry.user {
-            border-left: 4px solid #198754;
-        }
-        
-        .log-entry.system {
-            border-left: 4px solid #dc3545;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="main-container">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="mb-0">Панель управления ZibCraft</h1>
-                <div>
-                    <span id="userInfo" class="me-2"></span>
-                    <a href="/users" class="btn btn-outline-primary me-2" id="usersBtn" style="display: none;">
-                        <i class="bi bi-people"></i> Пользователи
-                    </a>
-                    <a href="/logout" class="btn btn-outline-danger">
-                        <i class="bi bi-box-arrow-right"></i> Выйти
-                    </a>
+        <div class="whitelist-list" id="whitelistList">
+            <div class="search-box mb-3">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="whitelistSearch" placeholder="Поиск игрока...">
                 </div>
             </div>
-            
-            <div class="nav nav-tabs" id="nav-tab" role="tablist">
-                <button class="nav-link active" id="nav-online-tab" data-bs-toggle="tab" data-bs-target="#nav-online" type="button" role="tab">
-                    <i class="bi bi-people-fill"></i> Онлайн
-                </button>
-                <button class="nav-link" id="nav-whitelist-tab" data-bs-toggle="tab" data-bs-target="#nav-whitelist" type="button" role="tab">
-                    <i class="bi bi-person-check-fill"></i> Белый список
-                </button>
-                <button class="nav-link" id="nav-logs-tab" data-bs-toggle="tab" data-bs-target="#nav-logs" type="button" role="tab">
-                    <i class="bi bi-clock-history"></i> Логи
-                </button>
-                <button class="nav-link" id="nav-rcon-tab" data-bs-toggle="tab" data-bs-target="#nav-rcon" type="button" role="tab">
-                    <i class="bi bi-terminal"></i> RCON консоль
-                </button>
+            <div class="text-center text-muted">Загрузка списка...</div>
+        </div>
+        
+        <div class="loading" id="whitelistLoading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
             </div>
-            
-            <div class="tab-content" id="nav-tabContent">
-                <!-- Вкладка Онлайн -->
-                <div class="tab-pane fade show active" id="nav-online" role="tabpanel" aria-labelledby="nav-online-tab">
-                    <h2 class="text-center mb-4">Игроки онлайн</h2>
-                    <div class="d-flex justify-content-center mb-3">
-                        <button class="btn btn-primary" onclick="updateOnlineList()">
+        </div>
+        <div class="response-box" id="whitelistResponseBox"></div>
+    </div>
+    
+    <!-- Вкладка логов -->
+    <div class="tab-pane fade" id="nav-logs" role="tabpanel">
+        <div class="container-fluid mt-3">
+            <div class="row mb-3">
+                <div class="col">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3>История действий</h3>
+                        <button class="btn btn-outline-primary" onclick="refreshLogs()">
                             <i class="bi bi-arrow-clockwise"></i> Обновить
                         </button>
                     </div>
-                    <div class="online-list" id="onlineList">
-                        <div class="text-center text-muted">Загрузка списка...</div>
-                    </div>
-                    <div class="loading" id="onlineLoading">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Загрузка...</span>
-                        </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="logSearch" placeholder="Поиск по логам...">
+                        <button class="btn btn-outline-secondary" type="button" onclick="searchLogs()">
+                            <i class="bi bi-search"></i>
+                        </button>
                     </div>
                 </div>
-                
-                <!-- Вкладка Whitelist -->
-                <div class="tab-pane fade" id="nav-whitelist" role="tabpanel" aria-labelledby="nav-whitelist-tab">
-                    <h2 class="text-center mb-4">Управление Whitelist</h2>
-                    <div class="whitelist-form">
-                        <div class="input-group mb-3">
-                            <input type="text" class="form-control" id="whitelistUsername" placeholder="Введите ник игрока">
-                            <button class="btn btn-primary" type="button" id="addToWhitelistBtn">
-                                <i class="bi bi-plus-circle"></i> Добавить
-                            </button>
-                        </div>
+                <div class="col-auto">
+                    <select class="form-select" id="logTypeFilter" onchange="filterLogs()">
+                        <option value="all">Все типы</option>
+                        <option value="command">Команды</option>
+                        <option value="user">Пользователи</option>
+                        <option value="system">Системные</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <select class="form-select" id="logTimeFilter" onchange="filterLogs()">
+                        <option value="all">Все время</option>
+                        <option value="today">Сегодня</option>
+                        <option value="yesterday">Вчера</option>
+                        <option value="week">Последняя неделя</option>
+                        <option value="month">Последний месяц</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="logsContainer">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
                     </div>
-                    
-                    <div class="whitelist-list" id="whitelistList">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Вкладка RCON консоль -->
+    <div class="tab-pane fade" id="nav-rcon" role="tabpanel" aria-labelledby="nav-rcon-tab">
+        <h2>RCON консоль</h2>
+        <form id="commandForm">
+            <div class="mb-3">
+                <label for="command" class="form-label">Введите команду:</label>
+                <input type="text" class="form-control" id="command" name="command" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Отправить</button>
+        </form>
+        <div class="loading" id="rconLoading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+        </div>
+        <div class="response-box" id="rconResponseBox"></div>
+    </div>
+</div>
+
+<!-- Модальное окно для подтверждения удаления из белого списка -->
+<div class="modal fade" id="confirmWhitelistDeleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Подтверждение удаления</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить игрока <span id="whitelistDeletePlayer"></span> из белого списка?</p>
+                <p class="text-danger">Это действие нельзя отменить.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmWhitelistDeleteBtn">Удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для подтверждения кика -->
+<div class="modal fade" id="kickPlayerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Подтверждение кика</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите кикнуть игрока <span id="kickPlayerName" class="fw-bold"></span>?</p>
+                <div class="mb-3">
+                    <label for="kickReason" class="form-label">Причина кика:</label>
+                    <input type="text" class="form-control" id="kickReason" placeholder="Укажите причину кика">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-warning" id="confirmKickBtn">Кикнуть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для подтверждения бана -->
+<div class="modal fade" id="banPlayerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Подтверждение бана</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите забанить игрока <span id="banPlayerName" class="fw-bold"></span>?</p>
+                <div class="mb-3">
+                    <label for="banReason" class="form-label">Причина бана:</label>
+                    <input type="text" class="form-control" id="banReason" placeholder="Укажите причину бана">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmBanBtn">Забанить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Функция для получения информации о текущем пользователе
+    async function getUserInfo() {
+        try {
+            const response = await fetch('/api/user_info');
+            const data = await response.json();
+            
+            if (data.success) {
+                const userInfo = document.getElementById('userInfo');
+                const usersBtn = document.getElementById('usersBtn');
+                const rconTabItem = document.getElementById('rconTabItem');
+                
+                // Определяем класс для бейджа роли
+                let roleClass = '';
+                let roleName = '';
+                
+                switch(data.role) {
+                    case 'superuser':
+                        roleClass = 'superuser';
+                        roleName = 'Суперпользователь';
+                        break;
+                    case 'admin':
+                        roleClass = 'admin';
+                        roleName = 'Администратор';
+                        break;
+                    case 'moder':
+                        roleClass = 'moder';
+                        roleName = 'Модератор';
+                        break;
+                    default:
+                        roleClass = 'secondary';
+                        roleName = data.role;
+                }
+                
+                // Отображаем информацию о пользователе
+                userInfo.innerHTML = `
+                    <span class="fw-bold">${data.username}</span>
+                    <span class="badge role-badge ${roleClass}">${roleName}</span>
+                `;
+                
+                // Показываем кнопку управления пользователями только для суперпользователей и администраторов
+                if (data.role === 'superuser' || data.role === 'admin') {
+                    usersBtn.style.display = 'inline-block';
+                } else {
+                    usersBtn.style.display = 'none';
+                }
+                
+                // Показываем вкладку RCON консоли только для суперпользователей
+                if (data.role === 'superuser') {
+                    rconTabItem.style.display = 'block';
+                } else {
+                    rconTabItem.style.display = 'none';
+                }
+            }
+        } catch (error) {
+            console.error('Ошибка при получении информации о пользователе:', error);
+        }
+    }
+
+    // Функция для отправки команды RCON
+    async function sendCommand(command) {
+        const responseBox = document.getElementById('rconResponseBox');
+        const loading = document.getElementById('rconLoading');
+        
+        loading.style.display = 'block';
+        responseBox.style.display = 'none';
+        
+        try {
+            const response = await fetch('/send_command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `command=${encodeURIComponent(command)}`
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                responseBox.textContent = `❌ Ошибка: ${data.error}`;
+            } else {
+                responseBox.textContent = data.response;
+            }
+            
+            responseBox.style.display = 'block';
+        } catch (error) {
+            responseBox.textContent = '❌ Ошибка при отправке команды';
+            responseBox.style.display = 'block';
+        } finally {
+            loading.style.display = 'none';
+        }
+    }
+
+    // Функция для обновления списка whitelist
+    async function updateWhitelist() {
+        const whitelistList = document.getElementById('whitelistList');
+        const loading = document.getElementById('whitelistLoading');
+        
+        whitelistList.innerHTML = `
+            <div class="search-box mb-3">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="whitelistSearch" placeholder="Поиск игрока...">
+                </div>
+            </div>
+            <div class="text-center text-muted">Загрузка списка...</div>
+        `;
+        loading.style.display = 'block';
+        
+        try {
+            const response = await fetch('/send_command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'command=whitelist list'
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                whitelistList.innerHTML = `<div class="text-danger">❌ Ошибка: ${data.error}</div>`;
+            } else {
+                // Парсим ответ команды whitelist list
+                const responseText = data.response;
+                
+                // Проверяем, есть ли игроки в whitelist
+                if (responseText.includes('Нет игроков в белом списке')) {
+                    whitelistList.innerHTML = `
                         <div class="search-box mb-3">
                             <div class="input-group">
                                 <span class="input-group-text">
@@ -420,287 +673,61 @@
                                 <input type="text" class="form-control" id="whitelistSearch" placeholder="Поиск игрока...">
                             </div>
                         </div>
-                        <div class="text-center text-muted">Загрузка списка...</div>
-                    </div>
-                    
-                    <div class="loading" id="whitelistLoading">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Загрузка...</span>
-                        </div>
-                    </div>
-                    <div class="response-box" id="whitelistResponseBox"></div>
-                </div>
-                
-                <!-- Вкладка логов -->
-                <div class="tab-pane fade" id="nav-logs" role="tabpanel">
-                    <div class="container-fluid mt-3">
-                        <div class="row mb-3">
-                            <div class="col">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h3>История действий</h3>
-                                    <button class="btn btn-outline-primary" onclick="refreshLogs()">
-                                        <i class="bi bi-arrow-clockwise"></i> Обновить
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col">
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="logSearch" placeholder="Поиск по логам...">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="searchLogs()">
-                                        <i class="bi bi-search"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="col-auto">
-                                <select class="form-select" id="logTypeFilter" onchange="filterLogs()">
-                                    <option value="all">Все типы</option>
-                                    <option value="command">Команды</option>
-                                    <option value="user">Пользователи</option>
-                                    <option value="system">Системные</option>
-                                </select>
-                            </div>
-                            <div class="col-auto">
-                                <select class="form-select" id="logTimeFilter" onchange="filterLogs()">
-                                    <option value="all">Все время</option>
-                                    <option value="today">Сегодня</option>
-                                    <option value="yesterday">Вчера</option>
-                                    <option value="week">Последняя неделя</option>
-                                    <option value="month">Последний месяц</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div id="logsContainer">
-                            <div class="text-center py-5">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Загрузка...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Вкладка RCON консоль -->
-                <div class="tab-pane fade" id="nav-rcon" role="tabpanel" aria-labelledby="nav-rcon-tab">
-                    <h2>RCON консоль</h2>
-                    <form id="commandForm">
-                        <div class="mb-3">
-                            <label for="command" class="form-label">Введите команду:</label>
-                            <input type="text" class="form-control" id="command" name="command" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">Отправить</button>
-                    </form>
-                    <div class="loading" id="rconLoading">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Загрузка...</span>
-                        </div>
-                    </div>
-                    <div class="response-box" id="rconResponseBox"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модальное окно для подтверждения удаления из белого списка -->
-    <div class="modal fade" id="confirmWhitelistDeleteModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Подтверждение удаления</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Вы уверены, что хотите удалить игрока <span id="whitelistDeletePlayer"></span> из белого списка?</p>
-                    <p class="text-danger">Это действие нельзя отменить.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-danger" id="confirmWhitelistDeleteBtn">Удалить</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модальное окно для подтверждения кика -->
-    <div class="modal fade" id="kickPlayerModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Подтверждение кика</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Вы уверены, что хотите кикнуть игрока <span id="kickPlayerName" class="fw-bold"></span>?</p>
-                    <div class="mb-3">
-                        <label for="kickReason" class="form-label">Причина кика:</label>
-                        <input type="text" class="form-control" id="kickReason" placeholder="Укажите причину кика">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-warning" id="confirmKickBtn">Кикнуть</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модальное окно для подтверждения бана -->
-    <div class="modal fade" id="banPlayerModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Подтверждение бана</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Вы уверены, что хотите забанить игрока <span id="banPlayerName" class="fw-bold"></span>?</p>
-                    <div class="mb-3">
-                        <label for="banReason" class="form-label">Причина бана:</label>
-                        <input type="text" class="form-control" id="banReason" placeholder="Укажите причину бана">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-danger" id="confirmBanBtn">Забанить</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Функция для получения информации о текущем пользователе
-        async function getUserInfo() {
-            try {
-                const response = await fetch('/api/user_info');
-                const data = await response.json();
-                
-                if (data.success) {
-                    const userInfo = document.getElementById('userInfo');
-                    const usersBtn = document.getElementById('usersBtn');
-                    const rconTabItem = document.getElementById('rconTabItem');
-                    
-                    // Определяем класс для бейджа роли
-                    let roleClass = '';
-                    let roleName = '';
-                    
-                    switch(data.role) {
-                        case 'superuser':
-                            roleClass = 'superuser';
-                            roleName = 'Суперпользователь';
-                            break;
-                        case 'admin':
-                            roleClass = 'admin';
-                            roleName = 'Администратор';
-                            break;
-                        case 'moder':
-                            roleClass = 'moder';
-                            roleName = 'Модератор';
-                            break;
-                        default:
-                            roleClass = 'secondary';
-                            roleName = data.role;
-                    }
-                    
-                    // Отображаем информацию о пользователе
-                    userInfo.innerHTML = `
-                        <span class="fw-bold">${data.username}</span>
-                        <span class="badge role-badge ${roleClass}">${roleName}</span>
+                        <div class="text-center text-muted">Нет игроков в белом списке</div>
                     `;
-                    
-                    // Показываем кнопку управления пользователями только для суперпользователей и администраторов
-                    if (data.role === 'superuser' || data.role === 'admin') {
-                        usersBtn.style.display = 'inline-block';
-                    } else {
-                        usersBtn.style.display = 'none';
-                    }
-                    
-                    // Показываем вкладку RCON консоли только для суперпользователей
-                    if (data.role === 'superuser') {
-                        rconTabItem.style.display = 'block';
-                    } else {
-                        rconTabItem.style.display = 'none';
-                    }
-                }
-            } catch (error) {
-                console.error('Ошибка при получении информации о пользователе:', error);
-            }
-        }
-
-        // Функция для отправки команды RCON
-        async function sendCommand(command) {
-            const responseBox = document.getElementById('rconResponseBox');
-            const loading = document.getElementById('rconLoading');
-            
-            loading.style.display = 'block';
-            responseBox.style.display = 'none';
-            
-            try {
-                const response = await fetch('/send_command', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `command=${encodeURIComponent(command)}`
-                });
-                
-                const data = await response.json();
-                
-                if (data.error) {
-                    responseBox.textContent = `❌ Ошибка: ${data.error}`;
                 } else {
-                    responseBox.textContent = data.response;
-                }
-                
-                responseBox.style.display = 'block';
-            } catch (error) {
-                responseBox.textContent = '❌ Ошибка при отправке команды';
-                responseBox.style.display = 'block';
-            } finally {
-                loading.style.display = 'none';
-            }
-        }
-
-        // Функция для обновления списка whitelist
-        async function updateWhitelist() {
-            const whitelistList = document.getElementById('whitelistList');
-            const loading = document.getElementById('whitelistLoading');
-            
-            whitelistList.innerHTML = `
-                <div class="search-box mb-3">
-                    <div class="input-group">
-                        <span class="input-group-text">
-                            <i class="bi bi-search"></i>
-                        </span>
-                        <input type="text" class="form-control" id="whitelistSearch" placeholder="Поиск игрока...">
-                    </div>
-                </div>
-                <div class="text-center text-muted">Загрузка списка...</div>
-            `;
-            loading.style.display = 'block';
-            
-            try {
-                const response = await fetch('/send_command', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'command=whitelist list'
-                });
-                
-                const data = await response.json();
-                
-                if (data.error) {
-                    whitelistList.innerHTML = `<div class="text-danger">❌ Ошибка: ${data.error}</div>`;
-                } else {
-                    // Парсим ответ команды whitelist list
-                    const responseText = data.response;
-                    
-                    // Проверяем, есть ли игроки в whitelist
-                    if (responseText.includes('Нет игроков в белом списке')) {
+                    // Извлекаем список игроков из ответа
+                    const match = responseText.match(/There are (\d+) whitelisted player\(s\): (.+)/);
+                    if (match) {
+                        const players = match[2].split(', ');
+                        
+                        // Создаем HTML для списка игроков
+                        let playersHtml = `
+                            <h3 class="mb-3">Whitelist</h3>
+                            <div class="search-box mb-3">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="whitelistSearch" placeholder="Поиск игрока...">
+                                </div>
+                            </div>
+                            <div id="whitelistPlayers">
+                        `;
+                        
+                        // Добавляем каждого игрока в список
+                        players.forEach(playerName => {
+                            playersHtml += `
+                                <div class="whitelist-item" data-player="${playerName.toLowerCase()}">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>${playerName}</span>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="removeFromWhitelist('${playerName}')">
+                                            <i class="bi bi-trash"></i> Удалить
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        playersHtml += '</div>';
+                        whitelistList.innerHTML = playersHtml;
+                        
+                        // Добавляем обработчик поиска
+                        const searchInput = document.getElementById('whitelistSearch');
+                        searchInput.addEventListener('input', function(e) {
+                            const searchText = e.target.value.toLowerCase();
+                            const playerItems = document.querySelectorAll('.whitelist-item');
+                            
+                            playerItems.forEach(item => {
+                                const playerName = item.getAttribute('data-player');
+                                if (playerName.includes(searchText)) {
+                                    item.style.display = '';
+                                } else {
+                                    item.style.display = 'none';
+                                }
+                            });
+                        });
+                    } else {
                         whitelistList.innerHTML = `
                             <div class="search-box mb-3">
                                 <div class="input-group">
@@ -710,88 +737,407 @@
                                     <input type="text" class="form-control" id="whitelistSearch" placeholder="Поиск игрока...">
                                 </div>
                             </div>
-                            <div class="text-center text-muted">Нет игроков в белом списке</div>
+                            <div class="text-center text-muted">Ошибка при обработке списка игроков</div>
                         `;
-                    } else {
-                        // Извлекаем список игроков из ответа
-                        const match = responseText.match(/There are (\d+) whitelisted player\(s\): (.+)/);
-                        if (match) {
-                            const players = match[2].split(', ');
-                            
-                            // Создаем HTML для списка игроков
-                            let playersHtml = `
-                                <h3 class="mb-3">Whitelist</h3>
-                                <div class="search-box mb-3">
-                                    <div class="input-group">
-                                        <span class="input-group-text">
-                                            <i class="bi bi-search"></i>
-                                        </span>
-                                        <input type="text" class="form-control" id="whitelistSearch" placeholder="Поиск игрока...">
-                                    </div>
-                                </div>
-                                <div id="whitelistPlayers">
-                            `;
-                            
-                            // Добавляем каждого игрока в список
-                            players.forEach(playerName => {
-                                playersHtml += `
-                                    <div class="whitelist-item" data-player="${playerName.toLowerCase()}">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span>${playerName}</span>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="removeFromWhitelist('${playerName}')">
-                                                <i class="bi bi-trash"></i> Удалить
-                                            </button>
-                                        </div>
-                                    </div>
-                                `;
-                            });
-                            
-                            playersHtml += '</div>';
-                            whitelistList.innerHTML = playersHtml;
-                            
-                            // Добавляем обработчик поиска
-                            const searchInput = document.getElementById('whitelistSearch');
-                            searchInput.addEventListener('input', function(e) {
-                                const searchText = e.target.value.toLowerCase();
-                                const playerItems = document.querySelectorAll('.whitelist-item');
-                                
-                                playerItems.forEach(item => {
-                                    const playerName = item.getAttribute('data-player');
-                                    if (playerName.includes(searchText)) {
-                                        item.style.display = '';
-                                    } else {
-                                        item.style.display = 'none';
-                                    }
-                                });
-                            });
-                        } else {
-                            whitelistList.innerHTML = `
-                                <div class="search-box mb-3">
-                                    <div class="input-group">
-                                        <span class="input-group-text">
-                                            <i class="bi bi-search"></i>
-                                        </span>
-                                        <input type="text" class="form-control" id="whitelistSearch" placeholder="Поиск игрока...">
-                                    </div>
-                                </div>
-                                <div class="text-center text-muted">Ошибка при обработке списка игроков</div>
-                            `;
-                        }
                     }
                 }
-            } catch (error) {
-                whitelistList.innerHTML = '<div class="text-danger">❌ Ошибка при получении списка whitelist</div>';
-            } finally {
-                loading.style.display = 'none';
             }
+        } catch (error) {
+            whitelistList.innerHTML = '<div class="text-danger">❌ Ошибка при получении списка whitelist</div>';
+        } finally {
+            loading.style.display = 'none';
+        }
+    }
+
+    // Функция для добавления игрока в whitelist
+    async function addToWhitelist(username) {
+        if (!username) {
+            showWhitelistNotification('Введите ник игрока', true);
+            return;
+        }
+        
+        const loading = document.getElementById('whitelistLoading');
+        const responseBox = document.getElementById('whitelistResponseBox');
+        
+        loading.style.display = 'block';
+        responseBox.style.display = 'none';
+        
+        try {
+            const response = await fetch('/send_command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `command=whitelist add ${encodeURIComponent(username)}`
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                showWhitelistNotification(`Ошибка: ${data.error}`, true);
+            } else {
+                showWhitelistNotification('Игрок успешно добавлен в whitelist');
+                document.getElementById('whitelistUsername').value = '';
+                updateWhitelist();
+            }
+        } catch (error) {
+            showWhitelistNotification('Ошибка при добавлении игрока в whitelist', true);
+        } finally {
+            loading.style.display = 'none';
+        }
+    }
+
+    // Функция для удаления игрока из whitelist
+    async function removeFromWhitelist(username) {
+        if (!username) return;
+        
+        // Показываем модальное окно подтверждения
+        document.getElementById('whitelistDeletePlayer').textContent = username;
+        const confirmModal = new bootstrap.Modal(document.getElementById('confirmWhitelistDeleteModal'));
+        confirmModal.show();
+        
+        // Сохраняем имя игрока для использования в обработчике подтверждения
+        window.whitelistPlayerToDelete = username;
+    }
+
+    // Функция для отображения уведомлений в whitelist
+    function showWhitelistNotification(message, isError = false) {
+        const responseBox = document.getElementById('whitelistResponseBox');
+        
+        responseBox.textContent = message;
+        responseBox.style.display = 'block';
+        
+        if (isError) {
+            responseBox.className = 'response-box text-danger';
+        } else {
+            responseBox.className = 'response-box text-success';
+        }
+        
+        // Скрываем уведомление через 5 секунд
+        setTimeout(() => {
+            responseBox.style.display = 'none';
+        }, 5000);
+    }
+
+    // Глобальные переменные для хранения имени игрока
+    let currentKickPlayer = '';
+    let currentBanPlayer = '';
+
+    // Функция для показа модального окна кика
+    function showKickModal(playerName) {
+        currentKickPlayer = playerName;
+        document.getElementById('kickPlayerName').textContent = playerName;
+        document.getElementById('kickReason').value = '';
+        const modal = new bootstrap.Modal(document.getElementById('kickPlayerModal'));
+        modal.show();
+    }
+
+    // Функция для показа модального окна бана
+    function showBanModal(playerName) {
+        currentBanPlayer = playerName;
+        document.getElementById('banPlayerName').textContent = playerName;
+        document.getElementById('banReason').value = '';
+        const modal = new bootstrap.Modal(document.getElementById('banPlayerModal'));
+        modal.show();
+    }
+
+    // Обновляем функцию обновления списка онлайн игроков
+    function updateOnlineList() {
+        const onlineList = document.getElementById('onlineList');
+        const loading = document.getElementById('onlineLoading');
+        
+        loading.style.display = 'block';
+        onlineList.innerHTML = '<div class="text-center text-muted">Загрузка списка...</div>';
+        
+        try {
+            fetch('/send_command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'command=list'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    onlineList.innerHTML = `<div class="text-danger">❌ Ошибка: ${data.error}</div>`;
+                } else {
+                    const responseText = data.response;
+                    const countMatch = responseText.match(/Сейчас (\d+) из (\d+) игроков на сервере/);
+                    let countHtml = '';
+                    if (countMatch) {
+                        countHtml = `<div class="text-center mb-3">Сейчас ${countMatch[1]} из ${countMatch[2]} игроков на сервере</div>`;
+                    }
+                    
+                    let players = [];
+                    const lines = responseText.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.includes('default:')) {
+                            const playersText = line.replace('[default:', '').replace(']', '').trim();
+                            players = playersText.split(',').map(player => player.trim());
+                            if (players.length > 0 && players[0].includes('default:')) {
+                                players[0] = players[0].replace('default:', '').trim();
+                            }
+                            break;
+                        }
+                    }
+                    
+                    let playersHtml = countHtml;
+                    
+                    players.forEach(playerName => {
+                        playersHtml += `
+                            <div class="online-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>🔹 ${playerName}</span>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-success" onclick="sendCommand('spawn ${playerName}')">
+                                            <i class="bi bi-arrow-up-circle"></i> На спавн
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning" onclick="showKickModal('${playerName}')">
+                                            <i class="bi bi-box-arrow-right"></i> Кик
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="showBanModal('${playerName}')">
+                                            <i class="bi bi-shield-x"></i> Бан
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    onlineList.innerHTML = playersHtml || '<div class="text-center text-muted">Нет игроков онлайн</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при получении списка игроков:', error);
+                onlineList.innerHTML = '<div class="text-danger">❌ Ошибка при получении списка игроков</div>';
+            })
+            .finally(() => {
+                loading.style.display = 'none';
+            });
+        } catch (error) {
+            console.error('Ошибка при получении списка игроков:', error);
+            onlineList.innerHTML = '<div class="text-danger">❌ Ошибка при получении списка игроков</div>';
+            loading.style.display = 'none';
+        }
+    }
+
+    // Функции для работы с логами
+    let currentLogs = [];
+    let searchQuery = '';
+    let typeFilter = 'all';
+    let timeFilter = 'all';
+
+    function getLogTypeAndIcon(action) {
+        if (action.toLowerCase().includes('команд')) {
+            return { type: 'command', icon: 'bi-terminal' };
+        } else if (action.toLowerCase().includes('пользовател')) {
+            return { type: 'user', icon: 'bi-person' };
+        } else {
+            return { type: 'system', icon: 'bi-gear' };
+        }
+    }
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        if (date.toDateString() === today.toDateString()) {
+            return `Сегодня в ${date.toLocaleTimeString()}`;
+        } else if (date.toDateString() === yesterday.toDateString()) {
+            return `Вчера в ${date.toLocaleTimeString()}`;
+        } else {
+            return date.toLocaleString();
+        }
+    }
+
+    function isLogInTimeRange(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        const monthAgo = new Date(today);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+
+        switch (timeFilter) {
+            case 'today':
+                return date >= today;
+            case 'yesterday':
+                return date >= yesterday && date < today;
+            case 'week':
+                return date >= weekAgo;
+            case 'month':
+                return date >= monthAgo;
+            default:
+                return true;
+        }
+    }
+
+    function filterLogs() {
+        typeFilter = document.getElementById('logTypeFilter').value;
+        timeFilter = document.getElementById('logTimeFilter').value;
+        renderLogs();
+    }
+
+    function searchLogs() {
+        searchQuery = document.getElementById('logSearch').value.toLowerCase();
+        renderLogs();
+    }
+
+    function renderLogs() {
+        const container = document.getElementById('logsContainer');
+        let filteredLogs = currentLogs;
+
+        // Применяем фильтры
+        if (typeFilter !== 'all') {
+            filteredLogs = filteredLogs.filter(log => getLogTypeAndIcon(log.action).type === typeFilter);
         }
 
-        // Функция для добавления игрока в whitelist
-        async function addToWhitelist(username) {
-            if (!username) {
-                showWhitelistNotification('Введите ник игрока', true);
-                return;
+        filteredLogs = filteredLogs.filter(log => isLogInTimeRange(log.timestamp));
+
+        if (searchQuery) {
+            filteredLogs = filteredLogs.filter(log => 
+                log.action.toLowerCase().includes(searchQuery) || 
+                (log.details && log.details.toLowerCase().includes(searchQuery)) ||
+                (log.username && log.username.toLowerCase().includes(searchQuery))
+            );
+        }
+
+        if (filteredLogs.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted py-5">Логи не найдены</div>';
+            return;
+        }
+
+        container.innerHTML = filteredLogs.map(log => {
+            const { type, icon } = getLogTypeAndIcon(log.action);
+            const roleClass = log.role ? log.role.toLowerCase() : 'unknown';
+            const roleName = formatRole(log.role);
+            
+            // Форматируем детали в зависимости от типа действия
+            let formattedDetails = '';
+            if (log.details) {
+                if (log.action.toLowerCase().includes('команд')) {
+                    // Для команд форматируем ответ сервера
+                    formattedDetails = log.details;
+                } else {
+                    formattedDetails = log.details;
+                }
             }
+            
+            return `
+                <div class="log-entry ${type}">
+                    <div class="log-header">
+                        <div class="timestamp">${formatDate(log.timestamp)}</div>
+                        <div class="user-info">
+                            <span class="username"><i class="bi bi-person"></i> ${log.username}</span>
+                            <span class="role-badge ${roleClass}">${roleName}</span>
+                        </div>
+                    </div>
+                    <div class="action">
+                        <i class="bi ${icon}"></i>${log.action}
+                    </div>
+                    ${formattedDetails ? `<div class="details">${formattedDetails}</div>` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    function formatRole(role) {
+        if (!role) return 'Неизвестно';
+        
+        const roleMap = {
+            'superuser': 'Суперпользователь',
+            'admin': 'Администратор',
+            'moder': 'Модератор'
+        };
+        
+        return roleMap[role.toLowerCase()] || role;
+    }
+
+    function refreshLogs() {
+        const container = document.getElementById('logsContainer');
+        container.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Загрузка...</span>
+                </div>
+            </div>
+        `;
+
+        fetch('/api/logs')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentLogs = data.logs;
+                    renderLogs();
+                } else {
+                    showNotification(data.message || 'Ошибка загрузки логов', 'error');
+                    container.innerHTML = '<div class="text-center text-danger py-5">Ошибка загрузки логов</div>';
+                }
+            })
+            .catch(error => {
+                showNotification('Ошибка при загрузке логов', 'error');
+                container.innerHTML = '<div class="text-center text-danger py-5">Ошибка загрузки логов</div>';
+            });
+    }
+
+    // Добавляем обработчик для поиска по Enter
+    document.getElementById('logSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            searchLogs();
+        }
+    });
+
+    // Загружаем логи при открытии вкладки
+    document.getElementById('nav-logs-tab').addEventListener('shown.bs.tab', function (e) {
+        refreshLogs();
+    });
+
+    // Обработчики событий
+    document.addEventListener('DOMContentLoaded', () => {
+        // Загружаем информацию о пользователе
+        getUserInfo();
+        
+        // Загружаем список whitelist
+        updateWhitelist();
+        
+        // Загружаем список онлайн игроков
+        updateOnlineList();
+        
+        // Обработчик отправки команды RCON
+        document.getElementById('commandForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const command = document.getElementById('command').value;
+            await sendCommand(command);
+        });
+        
+        // Обработчик добавления игрока в whitelist
+        document.getElementById('addToWhitelistBtn').addEventListener('click', () => {
+            const username = document.getElementById('whitelistUsername').value;
+            addToWhitelist(username);
+        });
+        
+        // Обработчик нажатия Enter в поле ввода ника
+        document.getElementById('whitelistUsername').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const username = document.getElementById('whitelistUsername').value;
+                addToWhitelist(username);
+            }
+        });
+
+        // Обработчик подтверждения удаления из белого списка
+        document.getElementById('confirmWhitelistDeleteBtn').addEventListener('click', async () => {
+            const username = window.whitelistPlayerToDelete;
+            
+            if (!username) return;
             
             const loading = document.getElementById('whitelistLoading');
             const responseBox = document.getElementById('whitelistResponseBox');
@@ -805,7 +1151,7 @@
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: `command=whitelist add ${encodeURIComponent(username)}`
+                    body: `command=whitelist remove ${encodeURIComponent(username)}`
                 });
                 
                 const data = await response.json();
@@ -813,418 +1159,34 @@
                 if (data.error) {
                     showWhitelistNotification(`Ошибка: ${data.error}`, true);
                 } else {
-                    showWhitelistNotification('Игрок успешно добавлен в whitelist');
-                    document.getElementById('whitelistUsername').value = '';
+                    showWhitelistNotification('Игрок успешно удален из whitelist');
                     updateWhitelist();
                 }
+                
+                // Закрываем модальное окно
+                bootstrap.Modal.getInstance(document.getElementById('confirmWhitelistDeleteModal')).hide();
             } catch (error) {
-                showWhitelistNotification('Ошибка при добавлении игрока в whitelist', true);
+                showWhitelistNotification('Ошибка при удалении игрока из whitelist', true);
             } finally {
                 loading.style.display = 'none';
             }
-        }
-
-        // Функция для удаления игрока из whitelist
-        async function removeFromWhitelist(username) {
-            if (!username) return;
-            
-            // Показываем модальное окно подтверждения
-            document.getElementById('whitelistDeletePlayer').textContent = username;
-            const confirmModal = new bootstrap.Modal(document.getElementById('confirmWhitelistDeleteModal'));
-            confirmModal.show();
-            
-            // Сохраняем имя игрока для использования в обработчике подтверждения
-            window.whitelistPlayerToDelete = username;
-        }
-
-        // Функция для отображения уведомлений в whitelist
-        function showWhitelistNotification(message, isError = false) {
-            const responseBox = document.getElementById('whitelistResponseBox');
-            
-            responseBox.textContent = message;
-            responseBox.style.display = 'block';
-            
-            if (isError) {
-                responseBox.className = 'response-box text-danger';
-            } else {
-                responseBox.className = 'response-box text-success';
-            }
-            
-            // Скрываем уведомление через 5 секунд
-            setTimeout(() => {
-                responseBox.style.display = 'none';
-            }, 5000);
-        }
-
-        // Глобальные переменные для хранения имени игрока
-        let currentKickPlayer = '';
-        let currentBanPlayer = '';
-
-        // Функция для показа модального окна кика
-        function showKickModal(playerName) {
-            currentKickPlayer = playerName;
-            document.getElementById('kickPlayerName').textContent = playerName;
-            document.getElementById('kickReason').value = '';
-            const modal = new bootstrap.Modal(document.getElementById('kickPlayerModal'));
-            modal.show();
-        }
-
-        // Функция для показа модального окна бана
-        function showBanModal(playerName) {
-            currentBanPlayer = playerName;
-            document.getElementById('banPlayerName').textContent = playerName;
-            document.getElementById('banReason').value = '';
-            const modal = new bootstrap.Modal(document.getElementById('banPlayerModal'));
-            modal.show();
-        }
-
-        // Обновляем функцию обновления списка онлайн игроков
-        function updateOnlineList() {
-            const onlineList = document.getElementById('onlineList');
-            const loading = document.getElementById('onlineLoading');
-            
-            loading.style.display = 'block';
-            onlineList.innerHTML = '<div class="text-center text-muted">Загрузка списка...</div>';
-            
-            try {
-                fetch('/send_command', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'command=list'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        onlineList.innerHTML = `<div class="text-danger">❌ Ошибка: ${data.error}</div>`;
-                    } else {
-                        const responseText = data.response;
-                        const countMatch = responseText.match(/Сейчас (\d+) из (\d+) игроков на сервере/);
-                        let countHtml = '';
-                        if (countMatch) {
-                            countHtml = `<div class="text-center mb-3">Сейчас ${countMatch[1]} из ${countMatch[2]} игроков на сервере</div>`;
-                        }
-                        
-                        let players = [];
-                        const lines = responseText.split('\n');
-                        
-                        for (const line of lines) {
-                            if (line.includes('default:')) {
-                                const playersText = line.replace('[default:', '').replace(']', '').trim();
-                                players = playersText.split(',').map(player => player.trim());
-                                if (players.length > 0 && players[0].includes('default:')) {
-                                    players[0] = players[0].replace('default:', '').trim();
-                                }
-                                break;
-                            }
-                        }
-                        
-                        let playersHtml = countHtml;
-                        
-                        players.forEach(playerName => {
-                            playersHtml += `
-                                <div class="online-item">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span>🔹 ${playerName}</span>
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm btn-outline-success" onclick="sendCommand('spawn ${playerName}')">
-                                                <i class="bi bi-arrow-up-circle"></i> На спавн
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-warning" onclick="showKickModal('${playerName}')">
-                                                <i class="bi bi-box-arrow-right"></i> Кик
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="showBanModal('${playerName}')">
-                                                <i class="bi bi-shield-x"></i> Бан
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        });
-                        
-                        onlineList.innerHTML = playersHtml || '<div class="text-center text-muted">Нет игроков онлайн</div>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Ошибка при получении списка игроков:', error);
-                    onlineList.innerHTML = '<div class="text-danger">❌ Ошибка при получении списка игроков</div>';
-                })
-                .finally(() => {
-                    loading.style.display = 'none';
-                });
-            } catch (error) {
-                console.error('Ошибка при получении списка игроков:', error);
-                onlineList.innerHTML = '<div class="text-danger">❌ Ошибка при получении списка игроков</div>';
-                loading.style.display = 'none';
-            }
-        }
-
-        // Функции для работы с логами
-        let currentLogs = [];
-        let searchQuery = '';
-        let typeFilter = 'all';
-        let timeFilter = 'all';
-
-        function getLogTypeAndIcon(action) {
-            if (action.toLowerCase().includes('команд')) {
-                return { type: 'command', icon: 'bi-terminal' };
-            } else if (action.toLowerCase().includes('пользовател')) {
-                return { type: 'user', icon: 'bi-person' };
-            } else {
-                return { type: 'system', icon: 'bi-gear' };
-            }
-        }
-
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            const today = new Date();
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-
-            if (date.toDateString() === today.toDateString()) {
-                return `Сегодня в ${date.toLocaleTimeString()}`;
-            } else if (date.toDateString() === yesterday.toDateString()) {
-                return `Вчера в ${date.toLocaleTimeString()}`;
-            } else {
-                return date.toLocaleString();
-            }
-        }
-
-        function isLogInTimeRange(timestamp) {
-            const date = new Date(timestamp);
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-            const weekAgo = new Date(today);
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            const monthAgo = new Date(today);
-            monthAgo.setMonth(monthAgo.getMonth() - 1);
-
-            switch (timeFilter) {
-                case 'today':
-                    return date >= today;
-                case 'yesterday':
-                    return date >= yesterday && date < today;
-                case 'week':
-                    return date >= weekAgo;
-                case 'month':
-                    return date >= monthAgo;
-                default:
-                    return true;
-            }
-        }
-
-        function filterLogs() {
-            typeFilter = document.getElementById('logTypeFilter').value;
-            timeFilter = document.getElementById('logTimeFilter').value;
-            renderLogs();
-        }
-
-        function searchLogs() {
-            searchQuery = document.getElementById('logSearch').value.toLowerCase();
-            renderLogs();
-        }
-
-        function renderLogs() {
-            const container = document.getElementById('logsContainer');
-            let filteredLogs = currentLogs;
-
-            // Применяем фильтры
-            if (typeFilter !== 'all') {
-                filteredLogs = filteredLogs.filter(log => getLogTypeAndIcon(log.action).type === typeFilter);
-            }
-
-            filteredLogs = filteredLogs.filter(log => isLogInTimeRange(log.timestamp));
-
-            if (searchQuery) {
-                filteredLogs = filteredLogs.filter(log => 
-                    log.action.toLowerCase().includes(searchQuery) || 
-                    (log.details && log.details.toLowerCase().includes(searchQuery)) ||
-                    (log.username && log.username.toLowerCase().includes(searchQuery))
-                );
-            }
-
-            if (filteredLogs.length === 0) {
-                container.innerHTML = '<div class="text-center text-muted py-5">Логи не найдены</div>';
-                return;
-            }
-
-            container.innerHTML = filteredLogs.map(log => {
-                const { type, icon } = getLogTypeAndIcon(log.action);
-                const roleClass = log.role ? log.role.toLowerCase() : 'unknown';
-                const roleName = formatRole(log.role);
-                
-                // Форматируем детали в зависимости от типа действия
-                let formattedDetails = '';
-                if (log.details) {
-                    if (log.action.toLowerCase().includes('команд')) {
-                        // Для команд форматируем ответ сервера
-                        formattedDetails = log.details;
-                    } else {
-                        formattedDetails = log.details;
-                    }
-                }
-                
-                return `
-                    <div class="log-entry ${type}">
-                        <div class="log-header">
-                            <div class="timestamp">${formatDate(log.timestamp)}</div>
-                            <div class="user-info">
-                                <span class="username"><i class="bi bi-person"></i> ${log.username}</span>
-                                <span class="role-badge ${roleClass}">${roleName}</span>
-                            </div>
-                        </div>
-                        <div class="action">
-                            <i class="bi ${icon}"></i>${log.action}
-                        </div>
-                        ${formattedDetails ? `<div class="details">${formattedDetails}</div>` : ''}
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function formatRole(role) {
-            if (!role) return 'Неизвестно';
-            
-            const roleMap = {
-                'superuser': 'Суперпользователь',
-                'admin': 'Администратор',
-                'moder': 'Модератор'
-            };
-            
-            return roleMap[role.toLowerCase()] || role;
-        }
-
-        function refreshLogs() {
-            const container = document.getElementById('logsContainer');
-            container.innerHTML = `
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Загрузка...</span>
-                    </div>
-                </div>
-            `;
-
-            fetch('/api/logs')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        currentLogs = data.logs;
-                        renderLogs();
-                    } else {
-                        showNotification(data.message || 'Ошибка загрузки логов', 'error');
-                        container.innerHTML = '<div class="text-center text-danger py-5">Ошибка загрузки логов</div>';
-                    }
-                })
-                .catch(error => {
-                    showNotification('Ошибка при загрузке логов', 'error');
-                    container.innerHTML = '<div class="text-center text-danger py-5">Ошибка загрузки логов</div>';
-                });
-        }
-
-        // Добавляем обработчик для поиска по Enter
-        document.getElementById('logSearch').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                searchLogs();
-            }
         });
 
-        // Загружаем логи при открытии вкладки
-        document.getElementById('nav-logs-tab').addEventListener('shown.bs.tab', function (e) {
-            refreshLogs();
+        // Обработчик для подтверждения кика
+        document.getElementById('confirmKickBtn').addEventListener('click', () => {
+            const reason = document.getElementById('kickReason').value.trim() || 'Кикнут с сервера';
+            sendCommand(`kick ${currentKickPlayer} ${reason}`);
+            bootstrap.Modal.getInstance(document.getElementById('kickPlayerModal')).hide();
+            setTimeout(updateOnlineList, 1000);
         });
 
-        // Обработчики событий
-        document.addEventListener('DOMContentLoaded', () => {
-            // Загружаем информацию о пользователе
-            getUserInfo();
-            
-            // Загружаем список whitelist
-            updateWhitelist();
-            
-            // Загружаем список онлайн игроков
-            updateOnlineList();
-            
-            // Обработчик отправки команды RCON
-            document.getElementById('commandForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                const command = document.getElementById('command').value;
-                await sendCommand(command);
-            });
-            
-            // Обработчик добавления игрока в whitelist
-            document.getElementById('addToWhitelistBtn').addEventListener('click', () => {
-                const username = document.getElementById('whitelistUsername').value;
-                addToWhitelist(username);
-            });
-            
-            // Обработчик нажатия Enter в поле ввода ника
-            document.getElementById('whitelistUsername').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const username = document.getElementById('whitelistUsername').value;
-                    addToWhitelist(username);
-                }
-            });
-
-            // Обработчик подтверждения удаления из белого списка
-            document.getElementById('confirmWhitelistDeleteBtn').addEventListener('click', async () => {
-                const username = window.whitelistPlayerToDelete;
-                
-                if (!username) return;
-                
-                const loading = document.getElementById('whitelistLoading');
-                const responseBox = document.getElementById('whitelistResponseBox');
-                
-                loading.style.display = 'block';
-                responseBox.style.display = 'none';
-                
-                try {
-                    const response = await fetch('/send_command', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `command=whitelist remove ${encodeURIComponent(username)}`
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.error) {
-                        showWhitelistNotification(`Ошибка: ${data.error}`, true);
-                    } else {
-                        showWhitelistNotification('Игрок успешно удален из whitelist');
-                        updateWhitelist();
-                    }
-                    
-                    // Закрываем модальное окно
-                    bootstrap.Modal.getInstance(document.getElementById('confirmWhitelistDeleteModal')).hide();
-                } catch (error) {
-                    showWhitelistNotification('Ошибка при удалении игрока из whitelist', true);
-                } finally {
-                    loading.style.display = 'none';
-                }
-            });
-
-            // Обработчик для подтверждения кика
-            document.getElementById('confirmKickBtn').addEventListener('click', () => {
-                const reason = document.getElementById('kickReason').value.trim() || 'Кикнут с сервера';
-                sendCommand(`kick ${currentKickPlayer} ${reason}`);
-                bootstrap.Modal.getInstance(document.getElementById('kickPlayerModal')).hide();
-                setTimeout(updateOnlineList, 1000);
-            });
-
-            // Обработчик для подтверждения бана
-            document.getElementById('confirmBanBtn').addEventListener('click', () => {
-                const reason = document.getElementById('banReason').value.trim() || 'Бан';
-                sendCommand(`ban ${currentBanPlayer} ${reason}`);
-                bootstrap.Modal.getInstance(document.getElementById('banPlayerModal')).hide();
-                setTimeout(updateOnlineList, 1000);
-            });
+        // Обработчик для подтверждения бана
+        document.getElementById('confirmBanBtn').addEventListener('click', () => {
+            const reason = document.getElementById('banReason').value.trim() || 'Бан';
+            sendCommand(`ban ${currentBanPlayer} ${reason}`);
+            bootstrap.Modal.getInstance(document.getElementById('banPlayerModal')).hide();
+            setTimeout(updateOnlineList, 1000);
         });
-    </script>
-</body>
-</html> 
+    });
+</script>
+{% endblock %} 

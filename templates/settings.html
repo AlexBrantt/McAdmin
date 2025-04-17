@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки ролей{% endblock %}
+
+{% block styles %}
+<style>
+    body {
+        padding-top: 2rem;
+        background-color: #f0f2f5;
+    }
+    
+    /* Стили для выделения выбранной роли */
+    #rolesList .list-group-item.active {
+        background-color: rgba(13, 110, 253, 0.1);
+        border-color: rgba(13, 110, 253, 0.2);
+    }
+    
+    #rolesList .list-group-item.active .badge {
+        font-weight: bold;
+    }
+    
+    #rolesList .list-group-item.active .btn {
+        background-color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Левая панель с ролями -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Роли</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" id="rolesList">
+                        <!-- Роли будут добавлены через JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Правая панель с настройками -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">Настройки роли <span id="currentRoleName">-</span></h5>
+                        <small class="text-muted" id="settingsType">Права доступа</small>
+                    </div>
+                    <button class="btn btn-primary btn-sm" id="addPermissionBtn">
+                        <i class="bi bi-plus"></i> Добавить команду
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="permissionsList" class="list-group">
+                        <!-- Права будут добавлены через JavaScript -->
+                    </div>
+                    
+                    <!-- Form for adding new permission -->
+                    <div id="addPermissionForm" class="border rounded p-3 mt-3" style="display: none;">
+                        <h6 class="mb-3">Добавить новую команду</h6>
+                        <div class="mb-3">
+                            <label for="commandPattern" class="form-label">Команда RCON</label>
+                            <input type="text" class="form-control" id="commandPattern" placeholder="Например: spawn">
+                            <div class="form-text">
+                                Введите команду без слеша. Например:<br>
+                                - spawn - команда спавна игрока<br>
+                                - kick - команда кика игрока<br>
+                                - ban - команда бана игрока<br>
+                                - whitelist add - добавление в вайтлист
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary btn-sm" id="cancelAddPermission">Отмена</button>
+                            <button type="button" class="btn btn-primary btn-sm" id="savePermission">Добавить</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for editing role color -->
+<div class="modal fade" id="colorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Изменить цвет роли <span id="colorModalRole"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Выберите цвет</label>
+                    <div class="d-flex align-items-center gap-3">
+                        <input type="color" class="form-control form-control-color" id="colorPicker">
+                        <span id="colorPreview" class="badge" style="font-size: 1rem;">Пример текста</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="saveColor">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentRole = null;
+const defaultPermissions = {
+    'moder': ['spawn', 'kick', 'ban', 'whitelist add', 'whitelist remove'],
+    'admin': ['spawn', 'kick', 'ban', 'whitelist add', 'whitelist remove'],
+    'superuser': ['*']
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Page loaded, fetching role settings...');
+    loadRoleSettings();
+    
+    // Обработчики для модального окна с цветом
+    const colorModal = document.getElementById('colorModal');
+    const colorPicker = document.getElementById('colorPicker');
+    const colorPreview = document.getElementById('colorPreview');
+    
+    colorPicker.addEventListener('input', function() {
+        colorPreview.style.backgroundColor = this.value;
+    });
+    
+    document.getElementById('saveColor').addEventListener('click', function() {
+        if (currentRole) {
+            updateRoleColor(currentRole, colorPicker.value);
+            $('#colorModal').modal('hide');
+        }
+    });
+    
+    // Обработчики для формы добавления прав
+    document.getElementById('addPermissionBtn').addEventListener('click', function() {
+        document.getElementById('addPermissionForm').style.display = 'block';
+        this.style.display = 'none';
+    });
+    
+    document.getElementById('cancelAddPermission').addEventListener('click', function() {
+        document.getElementById('addPermissionForm').style.display = 'none';
+        document.getElementById('addPermissionBtn').style.display = 'block';
+        document.getElementById('commandPattern').value = '';
+    });
+    
+    document.getElementById('savePermission').addEventListener('click', function() {
+        const pattern = document.getElementById('commandPattern').value.trim();
+        if (!pattern) {
+            showError('Введите команду');
+            return;
+        }
+        if (currentRole) {
+            addPermission(currentRole, pattern);
+        }
+    });
+    
+    // Сброс форм при закрытии модальных окон
+    $('#colorModal').on('hidden.bs.modal', function() {
+        currentRole = null;
+    });
+});
+
+function loadRoleSettings() {
+    console.log('Fetching role settings from API...');
+    fetch('/api/roles/settings')
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Received data:', data);
+        if (data.success) {
+            displayRoles(data.settings);
+            // Выбираем первую роль по умолчанию
+            const firstRole = Object.keys(data.settings)[0];
+            if (firstRole) {
+                selectRole(firstRole, data.settings[firstRole]);
+            }
+        } else {
+            showError(data.message || 'Ошибка загрузки настроек ролей');
+        }
+    })
+    .catch(error => {
+        console.error('Error loading settings:', error);
+        showError('Ошибка загрузки настроек ролей');
+    });
+}
+
+function displayRoles(settings) {
+    const container = document.getElementById('rolesList');
+    container.innerHTML = '';
+    
+    for (const role in settings) {
+        const div = document.createElement('div');
+        div.className = 'list-group-item';
+        
+        const roleColor = settings[role] || '#000000';
+        div.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge" style="background-color: ${roleColor}">${formatRole(role)}</span>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-outline-primary btn-sm" onclick="openColorModal('${role}', '${roleColor}')">
+                        <i class="bi bi-palette"></i>
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="selectRole('${role}', '${roleColor}')">
+                        <i class="bi bi-shield-lock"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+    }
+}
+
+function selectRole(role, color) {
+    currentRole = role;
+    document.getElementById('currentRoleName').textContent = formatRole(role);
+    document.querySelectorAll('#rolesList .list-group-item').forEach(item => {
+        // Удаляем класс active со всех элементов
+        item.classList.remove('active');
+        // Добавляем класс active только к выбранному элементу
+        if (item.querySelector('.badge').textContent === formatRole(role)) {
+            item.classList.add('active');
+        }
+    });
+    loadRolePermissions();
+}
+
+function openColorModal(role, color) {
+    currentRole = role;
+    document.getElementById('colorModalRole').textContent = formatRole(role);
+    const colorPicker = document.getElementById('colorPicker');
+    const colorPreview = document.getElementById('colorPreview');
+    colorPicker.value = color;
+    colorPreview.style.backgroundColor = color;
+    $('#colorModal').modal('show');
+}
+
+function loadRolePermissions() {
+    if (!currentRole) return;
+    
+    console.log('Loading permissions for role:', currentRole);
+    fetch('/api/roles/permissions')
+    .then(response => response.json())
+    .then(data => {
+        console.log('Permissions data:', data);
+        if (data.success) {
+            displayRolePermissions(data.permissions);
+        } else {
+            showError(data.message || 'Ошибка загрузки разрешений');
+        }
+    })
+    .catch(error => {
+        console.error('Error loading permissions:', error);
+        showError('Ошибка загрузки разрешений');
+    });
+}
+
+function displayRolePermissions(permissions) {
+    if (!currentRole) return;
+    
+    const container = document.getElementById('permissionsList');
+    container.innerHTML = '';
+    
+    // Скрываем кнопку добавления прав для суперпользователя
+    const addPermissionBtn = document.getElementById('addPermissionBtn');
+    if (currentRole === 'superuser') {
+        addPermissionBtn.style.display = 'none';
+        container.innerHTML = '<p class="text-muted mb-0">Суперпользователь имеет доступ ко всем командам</p>';
+        return;
+    } else {
+        addPermissionBtn.style.display = 'block';
+    }
+    
+    // Преобразуем данные в нужный формат
+    let rolePermissions = [];
+    if (Array.isArray(permissions)) {
+        // Если permissions это массив кортежей [role, command_pattern, ...]
+        rolePermissions = permissions
+            .filter(perm => perm[0] === currentRole)
+            .map(perm => perm[1]);
+    } else if (typeof permissions === 'object') {
+        // Если permissions это объект {role: [patterns]}
+        rolePermissions = permissions[currentRole] || [];
+    }
+    
+    console.log('Current role permissions:', rolePermissions);
+    
+    if (rolePermissions.length === 0) {
+        container.innerHTML = '<p class="text-muted mb-0">Нет доступных команд</p>';
+        return;
+    }
+    
+    rolePermissions.forEach(pattern => {
+        const item = document.createElement('div');
+        item.className = 'list-group-item d-flex justify-content-between align-items-center';
+        item.innerHTML = `
+            <code>${pattern}</code>
+            <button class="btn btn-danger btn-sm" onclick="removePermission('${currentRole}', '${pattern}')">
+                <i class="bi bi-trash"></i>
+            </button>
+        `;
+        container.appendChild(item);
+    });
+}
+
+function updateRoleColor(role, color) {
+    console.log('Updating color for role:', role, 'to:', color);
+    fetch(`/api/roles/${role}/color`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ color: color })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Color update response:', data);
+        if (data.success) {
+            showSuccess('Цвет роли обновлен');
+            loadRoleSettings();
+        } else {
+            showError(data.message || 'Ошибка обновления цвета роли');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating color:', error);
+        showError('Ошибка обновления цвета роли');
+    });
+}
+
+function addPermission(role, pattern) {
+    console.log('Adding permission:', pattern, 'for role:', role);
+    fetch(`/api/roles/${role}/permissions`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ command_pattern: pattern })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Add permission response:', data);
+        if (data.success) {
+            showSuccess('Разрешение добавлено');
+            loadRolePermissions();
+            document.getElementById('addPermissionForm').style.display = 'none';
+            document.getElementById('addPermissionBtn').style.display = 'block';
+            document.getElementById('commandPattern').value = '';
+        } else {
+            showError(data.message || 'Ошибка добавления разрешения');
+        }
+    })
+    .catch(error => {
+        console.error('Error adding permission:', error);
+        showError('Ошибка добавления разрешения');
+    });
+}
+
+function removePermission(role, pattern) {
+    if (!confirm(`Вы уверены, что хотите удалить команду "${pattern}" для роли ${formatRole(role)}?`)) {
+        return;
+    }
+    
+    console.log('Removing permission:', pattern, 'for role:', role);
+    fetch(`/api/roles/${role}/permissions/${encodeURIComponent(pattern)}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Remove permission response:', data);
+        if (data.success) {
+            showSuccess('Разрешение удалено');
+            loadRolePermissions();
+        } else {
+            showError(data.message || 'Ошибка удаления разрешения');
+        }
+    })
+    .catch(error => {
+        console.error('Error removing permission:', error);
+        showError('Ошибка удаления разрешения');
+    });
+}
+
+function formatRole(role) {
+    if (!role) return 'Неизвестно';
+    
+    const roleMap = {
+        'superuser': 'Суперпользователь',
+        'admin': 'Администратор',
+        'moder': 'Модератор'
+    };
+    
+    return roleMap[role.toLowerCase()] || role;
+}
+
+function showSuccess(message) {
+    showNotification(message, 'success');
+}
+
+function showError(message) {
+    showNotification(message, 'danger');
+}
+</script>
+{% endblock %} 

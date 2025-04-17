@@ -2,6 +2,7 @@ import os
 import re
 import secrets
 import sqlite3
+from datetime import datetime
 from functools import wraps
 
 from dotenv import load_dotenv
@@ -22,15 +23,22 @@ from models import (
     ROLE_MODER,
     ROLE_SUPERUSER,
     add_log,
+    add_role_permission,
     add_user,
     change_password,
     change_user_role,
     change_username,
+    check_command_permission,
+    create_role_settings_table,
     delete_user,
     get_all_logs,
     get_all_users,
+    get_role_permissions,
+    get_role_settings,
     get_user,
     get_user_logs,
+    remove_role_permission,
+    update_role_color,
     verify_password,
 )
 
@@ -44,6 +52,9 @@ app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(16))
 RCON_HOST = os.getenv('RCON_HOST')
 RCON_PORT = int(os.getenv('RCON_PORT', 17602))
 RCON_PASSWORD = os.getenv('RCON_PASSWORD')
+
+# Создаем таблицу настроек ролей при запуске
+create_role_settings_table()
 
 
 def login_required(f):
@@ -154,72 +165,17 @@ def send_command():
     if not command:
         return jsonify({'error': 'Команда не может быть пустой'})
 
-    # Проверяем, является ли команда RCON командой
-    is_rcon_command = command.startswith(
-        (
-            'ban',
-            'kick',
-            'tp',
-            'spawn',
-            'give',
-            'gamemode',
-            'weather',
-            'time',
-            'difficulty',
-            'gamerule',
-            'effect',
-            'enchant',
-            'particle',
-            'playsound',
-            'title',
-            'tellraw',
-            'clear',
-            'kill',
-        )
-    )
-
-    # Проверяем, является ли команда командой whitelist
-    is_whitelist_command = command.startswith('whitelist')
-
-    # Проверяем, является ли команда командой для управления игроками (доступна модераторам)
-    is_player_management_command = command.startswith(('spawn', 'kick', 'ban'))
-
-    # Проверяем права доступа
-    if (
-        is_rcon_command
-        and not is_player_management_command
-        and user['role'] not in [ROLE_SUPERUSER, ROLE_ADMIN]
-    ):
-        return jsonify({'error': 'У вас нет прав для выполнения RCON команд'})
-
-    if is_whitelist_command and user['role'] not in [
-        ROLE_SUPERUSER,
-        ROLE_ADMIN,
-        ROLE_MODER,
-    ]:
-        return jsonify({'error': 'У вас нет прав для управления whitelist'})
-
-    # Исключение: команда list доступна всем пользователям
-    if command == 'list':
-        is_rcon_command = False
-
-    # Если команда не RCON команда и не команда list, запрещаем её выполнение
-    if not is_rcon_command and command != 'list' and not is_whitelist_command:
-        return jsonify({'error': 'Команда не разрешена'})
+    # Проверяем права на выполнение команды
+    if not check_command_permission(user['role'], command):
+        return jsonify({'error': 'У вас нет прав для выполнения этой команды'})
 
     try:
-        # Отправляем команду на сервер
         response = send_rcon_command(command)
-
-        # Добавляем галочку к ответу сервера, если её нет
         if not response.startswith('❌'):
             response = f"✅ {response}"
 
-        # Логируем действие пользователя, исключая whitelist list
-        if is_rcon_command or (
-            is_whitelist_command and command != 'whitelist list'
-        ):
-            add_log(user['id'], f"Выполнил команду: {command}", response)
+        # Логируем действие пользователя
+        add_log(user['id'], f"Выполнил команду: {command}", response)
 
         return jsonify({'response': response})
     except Exception as e:
@@ -767,6 +723,117 @@ def get_all_logs_api():
                 'message': f'Ошибка при получении логов: {str(e)}',
             }
         )
+
+
+@app.route('/settings')
+@login_required
+def settings():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    user = get_user(session['username'])
+    if not user or user['role'] != ROLE_SUPERUSER:
+        return redirect(url_for('index'))
+
+    return render_template('settings.html')
+
+
+@app.route('/api/roles/settings', methods=['GET'])
+@login_required
+def get_roles_settings():
+    if 'username' not in session:
+        return jsonify(
+            {'success': False, 'message': 'Пользователь не авторизован'}
+        )
+
+    user = get_user(session['username'])
+    if not user or user['role'] != ROLE_SUPERUSER:
+        return jsonify({'success': False, 'message': 'Недостаточно прав'})
+
+    try:
+        settings = get_role_settings()
+        return jsonify({'success': True, 'settings': settings})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/roles/permissions', methods=['GET'])
+@login_required
+def get_roles_permissions():
+    if 'username' not in session:
+        return jsonify(
+            {'success': False, 'message': 'Пользователь не авторизован'}
+        )
+
+    user = get_user(session['username'])
+    if not user or user['role'] != ROLE_SUPERUSER:
+        return jsonify({'success': False, 'message': 'Недостаточно прав'})
+
+    try:
+        permissions = get_role_permissions()
+        return jsonify({'success': True, 'permissions': permissions})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/roles/<role>/color', methods=['POST'])
+@login_required
+def update_role_color_api(role):
+    if 'username' not in session:
+        return jsonify(
+            {'success': False, 'message': 'Пользователь не авторизован'}
+        )
+
+    user = get_user(session['username'])
+    if not user or user['role'] != ROLE_SUPERUSER:
+        return jsonify({'success': False, 'message': 'Недостаточно прав'})
+
+    data = request.get_json()
+    if not data or 'color' not in data:
+        return jsonify({'success': False, 'message': 'Цвет не указан'})
+
+    success, message = update_role_color(role, data['color'])
+    return jsonify({'success': success, 'message': message})
+
+
+@app.route('/api/roles/<role>/permissions', methods=['POST'])
+@login_required
+def add_role_permission_api(role):
+    if 'username' not in session:
+        return jsonify(
+            {'success': False, 'message': 'Пользователь не авторизован'}
+        )
+
+    user = get_user(session['username'])
+    if not user or user['role'] != ROLE_SUPERUSER:
+        return jsonify({'success': False, 'message': 'Недостаточно прав'})
+
+    data = request.get_json()
+    if not data or 'command_pattern' not in data:
+        return jsonify(
+            {'success': False, 'message': 'Шаблон команды не указан'}
+        )
+
+    success, message = add_role_permission(role, data['command_pattern'])
+    return jsonify({'success': success, 'message': message})
+
+
+@app.route(
+    '/api/roles/<role>/permissions/<command_pattern>', methods=['DELETE']
+)
+@login_required
+def remove_role_permission_api(role, command_pattern):
+    if 'username' not in session:
+        return jsonify(
+            {'success': False, 'message': 'Пользователь не авторизован'}
+        )
+
+    user = get_user(session['username'])
+    if not user or user['role'] != ROLE_SUPERUSER:
+        return jsonify({'success': False, 'message': 'Недостаточно прав'})
+
+    success, message = remove_role_permission(role, command_pattern)
+    return jsonify({'success': success, 'message': message})
 
 
 if __name__ == '__main__':

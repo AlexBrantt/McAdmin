@@ -65,6 +65,10 @@ def init_db():
     if not get_user('admin'):
         add_user('admin', 'admin', ROLE_SUPERUSER)
 
+    # Создание таблицы настроек ролей
+    create_role_settings_table()
+    create_role_permissions_table()
+
 
 def verify_password(username, password):
     """Проверяет правильность пароля для указанного пользователя."""
@@ -372,6 +376,201 @@ def get_all_logs(limit=100):
     logs = cursor.fetchall()
     conn.close()
     return logs
+
+
+# Создание таблицы настроек ролей
+def create_role_settings_table():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute(
+        '''
+    CREATE TABLE IF NOT EXISTS role_settings (
+        role TEXT PRIMARY KEY,
+        color TEXT NOT NULL DEFAULT '#6c757d',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    '''
+    )
+
+    # Добавляем базовые роли с цветами по умолчанию
+    cursor.execute(
+        '''
+    INSERT OR IGNORE INTO role_settings (role, color) VALUES 
+    ('superuser', '#dc3545'),
+    ('admin', '#0d6efd'),
+    ('moder', '#20c997')
+    '''
+    )
+
+    conn.commit()
+    conn.close()
+
+
+# Создание таблицы прав на команды
+def create_role_permissions_table():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute(
+        '''
+    CREATE TABLE IF NOT EXISTS role_permissions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        role TEXT NOT NULL,
+        command_pattern TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (role) REFERENCES role_settings (role),
+        UNIQUE(role, command_pattern)
+    )
+    '''
+    )
+
+    # Добавляем базовые права
+    cursor.execute(
+        '''
+    INSERT OR IGNORE INTO role_permissions (role, command_pattern) VALUES 
+    ('superuser', '*'),
+    ('admin', 'whitelist'),
+    ('admin', 'kick'),
+    ('admin', 'ban'),
+    ('admin', 'spawn'),
+    ('admin', 'online'),
+    ('admin', 'list'),
+    ('moder', 'whitelist'),
+    ('moder', 'kick'),
+    ('moder', 'ban'),
+    ('moder', 'spawn'),
+    ('moder', 'online'),
+    ('moder', 'list')
+    '''
+    )
+
+    conn.commit()
+    conn.close()
+
+
+def get_role_settings(role=None):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    if role:
+        cursor.execute(
+            'SELECT role, color FROM role_settings WHERE role = ?', (role,)
+        )
+        result = cursor.fetchone()
+        settings = {result[0]: result[1]} if result else {}
+    else:
+        cursor.execute('SELECT role, color FROM role_settings')
+        result = cursor.fetchall()
+        settings = {row[0]: row[1] for row in result}
+
+    conn.close()
+    return settings
+
+
+def get_role_permissions(role=None):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    if role:
+        cursor.execute(
+            'SELECT command_pattern FROM role_permissions WHERE role = ?',
+            (role,),
+        )
+        result = [row[0] for row in cursor.fetchall()]
+    else:
+        cursor.execute('SELECT role, command_pattern FROM role_permissions')
+        result = cursor.fetchall()
+        # Преобразуем результат в список кортежей [role, command_pattern]
+        result = [(row[0], row[1]) for row in result]
+
+    conn.close()
+    return result
+
+
+def update_role_color(role, color):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'UPDATE role_settings SET color = ? WHERE role = ?', (color, role)
+        )
+        conn.commit()
+        success = True
+        message = "Цвет роли успешно обновлен"
+    except Exception as e:
+        success = False
+        message = str(e)
+
+    conn.close()
+    return success, message
+
+
+def add_role_permission(role, command_pattern):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'INSERT INTO role_permissions (role, command_pattern) VALUES (?, ?)',
+            (role, command_pattern),
+        )
+        conn.commit()
+        success = True
+        message = "Право успешно добавлено"
+    except sqlite3.IntegrityError:
+        success = False
+        message = "Такое право уже существует"
+    except Exception as e:
+        success = False
+        message = str(e)
+
+    conn.close()
+    return success, message
+
+
+def remove_role_permission(role, command_pattern):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'DELETE FROM role_permissions WHERE role = ? AND command_pattern = ?',
+            (role, command_pattern),
+        )
+        conn.commit()
+        success = True
+        message = "Право успешно удалено"
+    except Exception as e:
+        success = False
+        message = str(e)
+
+    conn.close()
+    return success, message
+
+
+def check_command_permission(role, command):
+    if role == ROLE_SUPERUSER:
+        return True
+
+    permissions = get_role_permissions(role)
+
+    # Если есть право на все команды
+    if '*' in permissions:
+        return True
+
+    # Проверяем каждый паттерн команды
+    command_parts = command.split()
+    if not command_parts:
+        return False
+
+    base_command = command_parts[0]
+
+    return any(
+        pattern == '*'
+        or pattern == base_command
+        or (pattern.endswith('*') and base_command.startswith(pattern[:-1]))
+        for pattern in permissions
+    )
 
 
 # Инициализируем базу данных при импорте модуля
