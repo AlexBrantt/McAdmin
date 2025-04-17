@@ -562,8 +562,32 @@ def get_logs():
             {'success': False, 'message': 'У вас нет прав для просмотра логов'}
         )
 
-    logs = get_all_logs()
-    return jsonify({'success': True, 'logs': logs})
+    try:
+        logs = get_all_logs()
+        logs_list = []
+        for log in logs:
+            # Добавляем отладочный вывод
+            print(f"Log entry: {dict(log)}")
+            log_dict = {
+                'id': log['id'],
+                'timestamp': (
+                    str(log['timestamp']) if log['timestamp'] else None
+                ),
+                'action': log['action'],
+                'details': log['details'],
+                'username': log['username'],
+                'role': log['role'],
+            }
+            logs_list.append(log_dict)
+        return jsonify({'success': True, 'logs': logs_list})
+    except Exception as e:
+        app.logger.error(f"Error getting logs: {str(e)}")
+        return jsonify(
+            {
+                'success': False,
+                'message': f'Ошибка при получении логов: {str(e)}',
+            }
+        )
 
 
 @app.route('/api/logs/user/<int:user_id>', methods=['GET'])
@@ -689,6 +713,58 @@ def get_user_info(user_id):
         return jsonify({'success': True, 'user': user_info})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/logs')
+@login_required
+def get_all_logs_api():
+    if 'username' not in session:
+        return jsonify(
+            {'success': False, 'message': 'Пользователь не авторизован'}
+        )
+
+    user = get_user(session['username'])
+    if not user:
+        return jsonify({'success': False, 'message': 'Пользователь не найден'})
+
+    # Проверяем, имеет ли пользователь права на просмотр логов
+    if user['role'] not in [ROLE_SUPERUSER, ROLE_ADMIN, ROLE_MODER]:
+        return jsonify(
+            {'success': False, 'message': 'У вас нет прав для просмотра логов'}
+        )
+
+    try:
+        logs = (
+            get_all_logs()
+        )  # Используем импортированную функцию из models.py
+
+        # Преобразуем результаты в список словарей
+        logs_list = []
+        for log in logs:
+            # Преобразуем объект Row в словарь
+            log_dict = dict(log)
+
+            # Форматируем timestamp если он есть
+            if log_dict['timestamp']:
+                try:
+                    if isinstance(log_dict['timestamp'], str):
+                        log_dict['timestamp'] = log_dict['timestamp']
+                    else:
+                        log_dict['timestamp'] = str(log_dict['timestamp'])
+                except (AttributeError, ValueError):
+                    log_dict['timestamp'] = str(log_dict['timestamp'])
+
+            logs_list.append(log_dict)
+
+        return jsonify({'success': True, 'logs': logs_list})
+    except Exception as e:
+        app.logger.error(f"Error getting logs: {str(e)}")
+        return jsonify(
+            {
+                'success': False,
+                'message': f'Ошибка при получении логов: {str(e)}',
+            }
+        )
 
 
 if __name__ == '__main__':

@@ -71,6 +71,7 @@
             border-top: none;
             border-radius: 0 0 var(--border-radius) var(--border-radius);
             background-color: #fff;
+            margin-top: 20px;
         }
         
         .response-box {
@@ -90,25 +91,28 @@
         }
         
         .role-badge {
-            font-size: 0.7rem;
-            padding: 0.2rem 0.4rem;
-            border-radius: 20px;
-            font-weight: 600;
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 500;
+            color: white;
         }
         
         .role-badge.superuser {
             background-color: #dc3545;
-            color: white;
         }
         
         .role-badge.admin {
             background-color: #0d6efd;
-            color: white;
         }
         
         .role-badge.moder {
-            background-color: #198754;
-            color: white;
+            background-color: #20c997;
+        }
+        
+        .role-badge.unknown {
+            background-color: #6c757d;
         }
         
         .whitelist-form {
@@ -285,6 +289,64 @@
                 font-size: 0.75rem;
             }
         }
+        
+        .log-entry {
+            background: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .timestamp {
+            color: #888;
+            font-size: 0.9em;
+        }
+        
+        .username {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .action {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+        }
+        
+        .action i {
+            margin-right: 8px;
+        }
+        
+        .details {
+            color: #666;
+            font-size: 0.95em;
+            padding-left: 24px;
+        }
+        
+        .log-entry.command {
+            border-left: 4px solid #0d6efd;
+        }
+        
+        .log-entry.user {
+            border-left: 4px solid #198754;
+        }
+        
+        .log-entry.system {
+            border-left: 4px solid #dc3545;
+        }
     </style>
 </head>
 <body>
@@ -303,27 +365,24 @@
                 </div>
             </div>
             
-            <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="online-tab" data-bs-toggle="tab" data-bs-target="#online" type="button" role="tab" aria-controls="online" aria-selected="true">
-                        <i class="bi bi-people-fill"></i> Онлайн
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="whitelist-tab" data-bs-toggle="tab" data-bs-target="#whitelist" type="button" role="tab" aria-controls="whitelist" aria-selected="false">
-                        <i class="bi bi-list-check"></i> Whitelist
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation" id="rconTabItem" style="display: none;">
-                    <button class="nav-link" id="rcon-tab" data-bs-toggle="tab" data-bs-target="#rcon" type="button" role="tab" aria-controls="rcon" aria-selected="false">
-                        <i class="bi bi-terminal"></i> RCON консоль
-                    </button>
-                </li>
-            </ul>
+            <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                <button class="nav-link active" id="nav-online-tab" data-bs-toggle="tab" data-bs-target="#nav-online" type="button" role="tab">
+                    <i class="bi bi-people-fill"></i> Онлайн
+                </button>
+                <button class="nav-link" id="nav-whitelist-tab" data-bs-toggle="tab" data-bs-target="#nav-whitelist" type="button" role="tab">
+                    <i class="bi bi-person-check-fill"></i> Белый список
+                </button>
+                <button class="nav-link" id="nav-logs-tab" data-bs-toggle="tab" data-bs-target="#nav-logs" type="button" role="tab">
+                    <i class="bi bi-clock-history"></i> Логи
+                </button>
+                <button class="nav-link" id="nav-rcon-tab" data-bs-toggle="tab" data-bs-target="#nav-rcon" type="button" role="tab">
+                    <i class="bi bi-terminal"></i> RCON консоль
+                </button>
+            </div>
             
-            <div class="tab-content" id="dashboardTabContent">
+            <div class="tab-content" id="nav-tabContent">
                 <!-- Вкладка Онлайн -->
-                <div class="tab-pane fade show active" id="online" role="tabpanel" aria-labelledby="online-tab">
+                <div class="tab-pane fade show active" id="nav-online" role="tabpanel" aria-labelledby="nav-online-tab">
                     <h2 class="text-center mb-4">Игроки онлайн</h2>
                     <div class="d-flex justify-content-center mb-3">
                         <button class="btn btn-primary" onclick="updateOnlineList()">
@@ -341,7 +400,7 @@
                 </div>
                 
                 <!-- Вкладка Whitelist -->
-                <div class="tab-pane fade" id="whitelist" role="tabpanel" aria-labelledby="whitelist-tab">
+                <div class="tab-pane fade" id="nav-whitelist" role="tabpanel" aria-labelledby="nav-whitelist-tab">
                     <h2 class="text-center mb-4">Управление Whitelist</h2>
                     <div class="whitelist-form">
                         <div class="input-group mb-3">
@@ -372,8 +431,60 @@
                     <div class="response-box" id="whitelistResponseBox"></div>
                 </div>
                 
+                <!-- Вкладка логов -->
+                <div class="tab-pane fade" id="nav-logs" role="tabpanel">
+                    <div class="container-fluid mt-3">
+                        <div class="row mb-3">
+                            <div class="col">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h3>История действий</h3>
+                                    <button class="btn btn-outline-primary" onclick="refreshLogs()">
+                                        <i class="bi bi-arrow-clockwise"></i> Обновить
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="logSearch" placeholder="Поиск по логам...">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="searchLogs()">
+                                        <i class="bi bi-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <select class="form-select" id="logTypeFilter" onchange="filterLogs()">
+                                    <option value="all">Все типы</option>
+                                    <option value="command">Команды</option>
+                                    <option value="user">Пользователи</option>
+                                    <option value="system">Системные</option>
+                                </select>
+                            </div>
+                            <div class="col-auto">
+                                <select class="form-select" id="logTimeFilter" onchange="filterLogs()">
+                                    <option value="all">Все время</option>
+                                    <option value="today">Сегодня</option>
+                                    <option value="yesterday">Вчера</option>
+                                    <option value="week">Последняя неделя</option>
+                                    <option value="month">Последний месяц</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="logsContainer">
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Загрузка...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Вкладка RCON консоль -->
-                <div class="tab-pane fade" id="rcon" role="tabpanel" aria-labelledby="rcon-tab">
+                <div class="tab-pane fade" id="nav-rcon" role="tabpanel" aria-labelledby="nav-rcon-tab">
                     <h2>RCON консоль</h2>
                     <form id="commandForm">
                         <div class="mb-3">
@@ -797,6 +908,172 @@
                 loading.style.display = 'none';
             }
         }
+
+        // Функции для работы с логами
+        let currentLogs = [];
+        let searchQuery = '';
+        let typeFilter = 'all';
+        let timeFilter = 'all';
+
+        function getLogTypeAndIcon(action) {
+            if (action.toLowerCase().includes('команд')) {
+                return { type: 'command', icon: 'bi-terminal' };
+            } else if (action.toLowerCase().includes('пользовател')) {
+                return { type: 'user', icon: 'bi-person' };
+            } else {
+                return { type: 'system', icon: 'bi-gear' };
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            if (date.toDateString() === today.toDateString()) {
+                return `Сегодня в ${date.toLocaleTimeString()}`;
+            } else if (date.toDateString() === yesterday.toDateString()) {
+                return `Вчера в ${date.toLocaleTimeString()}`;
+            } else {
+                return date.toLocaleString();
+            }
+        }
+
+        function isLogInTimeRange(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            const monthAgo = new Date(today);
+            monthAgo.setMonth(monthAgo.getMonth() - 1);
+
+            switch (timeFilter) {
+                case 'today':
+                    return date >= today;
+                case 'yesterday':
+                    return date >= yesterday && date < today;
+                case 'week':
+                    return date >= weekAgo;
+                case 'month':
+                    return date >= monthAgo;
+                default:
+                    return true;
+            }
+        }
+
+        function filterLogs() {
+            typeFilter = document.getElementById('logTypeFilter').value;
+            timeFilter = document.getElementById('logTimeFilter').value;
+            renderLogs();
+        }
+
+        function searchLogs() {
+            searchQuery = document.getElementById('logSearch').value.toLowerCase();
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('logsContainer');
+            let filteredLogs = currentLogs;
+
+            // Применяем фильтры
+            if (typeFilter !== 'all') {
+                filteredLogs = filteredLogs.filter(log => getLogTypeAndIcon(log.action).type === typeFilter);
+            }
+
+            filteredLogs = filteredLogs.filter(log => isLogInTimeRange(log.timestamp));
+
+            if (searchQuery) {
+                filteredLogs = filteredLogs.filter(log => 
+                    log.action.toLowerCase().includes(searchQuery) || 
+                    (log.details && log.details.toLowerCase().includes(searchQuery)) ||
+                    (log.username && log.username.toLowerCase().includes(searchQuery))
+                );
+            }
+
+            if (filteredLogs.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted py-5">Логи не найдены</div>';
+                return;
+            }
+
+            container.innerHTML = filteredLogs.map(log => {
+                const { type, icon } = getLogTypeAndIcon(log.action);
+                const roleClass = log.role ? log.role.toLowerCase() : 'unknown';
+                const roleName = formatRole(log.role);
+                
+                return `
+                    <div class="log-entry ${type}">
+                        <div class="log-header">
+                            <div class="timestamp">${formatDate(log.timestamp)}</div>
+                            <div class="user-info">
+                                <span class="username"><i class="bi bi-person"></i> ${log.username}</span>
+                                <span class="role-badge ${roleClass}">${roleName}</span>
+                            </div>
+                        </div>
+                        <div class="action">
+                            <i class="bi ${icon}"></i>
+                            ${log.action}
+                        </div>
+                        ${log.details ? `<div class="details">${log.details}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatRole(role) {
+            if (!role) return 'Неизвестно';
+            
+            const roleMap = {
+                'superuser': 'Суперпользователь',
+                'admin': 'Администратор',
+                'moder': 'Модератор'
+            };
+            
+            return roleMap[role.toLowerCase()] || role;
+        }
+
+        function refreshLogs() {
+            const container = document.getElementById('logsContainer');
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                </div>
+            `;
+
+            fetch('/api/logs')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        currentLogs = data.logs;
+                        renderLogs();
+                    } else {
+                        showNotification(data.message || 'Ошибка загрузки логов', 'error');
+                        container.innerHTML = '<div class="text-center text-danger py-5">Ошибка загрузки логов</div>';
+                    }
+                })
+                .catch(error => {
+                    showNotification('Ошибка при загрузке логов', 'error');
+                    container.innerHTML = '<div class="text-center text-danger py-5">Ошибка загрузки логов</div>';
+                });
+        }
+
+        // Добавляем обработчик для поиска по Enter
+        document.getElementById('logSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchLogs();
+            }
+        });
+
+        // Загружаем логи при открытии вкладки
+        document.getElementById('nav-logs-tab').addEventListener('shown.bs.tab', function (e) {
+            refreshLogs();
+        });
 
         // Обработчики событий
         document.addEventListener('DOMContentLoaded', () => {

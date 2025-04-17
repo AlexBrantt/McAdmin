@@ -361,7 +361,7 @@ def get_all_logs(limit=100):
     cursor = conn.cursor()
     cursor.execute(
         '''
-    SELECT l.*, u.username 
+    SELECT l.*, u.username, u.role
     FROM logs l
     JOIN users u ON l.user_id = u.id
     ORDER BY l.timestamp DESC
