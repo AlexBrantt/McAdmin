@@ -29,6 +29,7 @@ from models import (
     change_user_role,
     change_username,
     check_command_permission,
+    clear_all_logs,
     create_role_settings_table,
     delete_user,
     get_all_logs,
@@ -177,7 +178,7 @@ def send_command():
 
         # Логируем действие пользователя только если это не команды whitelist list или list
         if command.lower() not in ['whitelist list', 'list']:
-            add_log(user['id'], f"Выполнил команду: {command}", response)
+            add_log(user['id'], f"Выполнил команду: {command}")
 
         return jsonify({'response': response})
     except Exception as e:
@@ -516,175 +517,6 @@ def logs():
 
 @app.route('/api/logs', methods=['GET'])
 @login_required
-def get_logs():
-    if 'username' not in session:
-        return jsonify(
-            {'success': False, 'message': 'Пользователь не авторизован'}
-        )
-
-    user = get_user(session['username'])
-    if not user:
-        return jsonify({'success': False, 'message': 'Пользователь не найден'})
-
-    # Проверяем, имеет ли пользователь права на просмотр логов
-    if user['role'] not in [ROLE_SUPERUSER, ROLE_ADMIN, ROLE_MODER]:
-        return jsonify(
-            {'success': False, 'message': 'У вас нет прав для просмотра логов'}
-        )
-
-    try:
-        logs = get_all_logs()
-        logs_list = []
-        for log in logs:
-            log_dict = {
-                'id': log['id'],
-                'timestamp': (
-                    str(log['timestamp']) if log['timestamp'] else None
-                ),
-                'action': log['action'],
-                'details': log['details'],
-                'username': log['username'],
-                'role': log['role'],
-            }
-            logs_list.append(log_dict)
-        return jsonify({'success': True, 'logs': logs_list})
-    except Exception as e:
-        app.logger.error(f"Error getting logs: {str(e)}")
-        return jsonify(
-            {
-                'success': False,
-                'message': f'Ошибка при получении логов: {str(e)}',
-            }
-        )
-
-
-@app.route('/api/logs/user/<int:user_id>', methods=['GET'])
-@login_required
-def get_user_logs_api(user_id):
-    if 'username' not in session:
-        return jsonify(
-            {'success': False, 'message': 'Пользователь не авторизован'}
-        )
-
-    user = get_user(session['username'])
-    if not user:
-        return jsonify({'success': False, 'message': 'Пользователь не найден'})
-
-    # Проверяем, имеет ли пользователь права на просмотр логов
-    if user['role'] not in [ROLE_SUPERUSER, ROLE_ADMIN, ROLE_MODER]:
-        return jsonify(
-            {'success': False, 'message': 'У вас нет прав для просмотра логов'}
-        )
-
-    logs = get_user_logs(user_id)
-    return jsonify({'success': True, 'logs': logs})
-
-
-@app.route('/logs/user/<int:user_id>')
-@login_required
-def user_logs(user_id):
-    if 'username' not in session:
-        return redirect(url_for('login'))
-
-    user = get_user(session['username'])
-    if not user:
-        return redirect(url_for('login'))
-
-    # Проверяем, имеет ли пользователь права на просмотр логов
-    if user['role'] not in [ROLE_SUPERUSER, ROLE_ADMIN]:
-        return redirect(url_for('index'))
-
-    return render_template('user_logs.html')
-
-
-@app.route('/api/users/<int:user_id>/logs')
-@login_required
-def get_user_logs_api_v2(user_id):
-    if 'username' not in session:
-        return jsonify(
-            {'success': False, 'message': 'Пользователь не авторизован'}
-        )
-
-    user = get_user(session['username'])
-    if not user:
-        return jsonify({'success': False, 'message': 'Пользователь не найден'})
-
-    # Проверяем, имеет ли пользователь права на просмотр логов
-    if user['role'] not in ['superuser', 'admin']:
-        return jsonify({'success': False, 'message': 'Недостаточно прав'})
-
-    try:
-        logs = get_user_logs(user_id)
-        # Преобразуем объекты Row в словари
-        logs_dict = []
-        for log in logs:
-            # Проверяем тип timestamp и форматируем соответственно
-            timestamp = log['timestamp']
-            if isinstance(timestamp, str):
-                formatted_timestamp = timestamp
-            else:
-                formatted_timestamp = (
-                    timestamp.isoformat() if timestamp else None
-                )
-
-            log_dict = {
-                'id': log['id'],
-                'user_id': log['user_id'],
-                'action': log['action'],
-                'details': log['details'],
-                'timestamp': formatted_timestamp,
-            }
-            logs_dict.append(log_dict)
-        return jsonify({'success': True, 'logs': logs_dict})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)})
-
-
-@app.route('/api/users/<int:user_id>')
-@login_required
-def get_user_info(user_id):
-    if 'username' not in session:
-        return jsonify(
-            {'success': False, 'message': 'Пользователь не авторизован'}
-        )
-
-    current_user = get_user(session['username'])
-    if not current_user:
-        return jsonify({'success': False, 'message': 'Пользователь не найден'})
-
-    # Проверяем, имеет ли пользователь права на просмотр информации о других пользователях
-    if current_user['role'] not in ['superuser', 'admin']:
-        return jsonify({'success': False, 'message': 'Недостаточно прав'})
-
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute(
-            'SELECT id, username, role, created_at FROM users WHERE id = ?',
-            (user_id,),
-        )
-        user = cursor.fetchone()
-        conn.close()
-
-        if not user:
-            return jsonify(
-                {'success': False, 'message': 'Пользователь не найден'}
-            )
-
-        user_info = {
-            'id': user[0],
-            'username': user[1],
-            'role': user[2],
-            'created_at': user[3],
-        }
-
-        return jsonify({'success': True, 'user': user_info})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)})
-
-
-@app.route('/api/logs')
-@login_required
 def get_all_logs_api():
     if 'username' not in session:
         return jsonify(
@@ -731,6 +563,45 @@ def get_all_logs_api():
             {
                 'success': False,
                 'message': f'Ошибка при получении логов: {str(e)}',
+            }
+        )
+
+
+@app.route('/api/logs/clear', methods=['POST'])
+@login_required
+def clear_logs_api():
+    if 'username' not in session:
+        return jsonify(
+            {'success': False, 'message': 'Пользователь не авторизован'}
+        )
+
+    user = get_user(session['username'])
+    if not user:
+        return jsonify({'success': False, 'message': 'Пользователь не найден'})
+
+    # Проверяем, имеет ли пользователь права на очистку логов
+    if user['role'] not in [ROLE_SUPERUSER, ROLE_ADMIN]:
+        return jsonify(
+            {'success': False, 'message': 'У вас нет прав для очистки логов'}
+        )
+
+    try:
+        if clear_all_logs():
+            # Логируем действие пользователя
+            add_log(user['id'], "Очистил все логи")
+            return jsonify(
+                {'success': True, 'message': 'Логи успешно очищены'}
+            )
+        else:
+            return jsonify(
+                {'success': False, 'message': 'Ошибка при очистке логов'}
+            )
+    except Exception as e:
+        app.logger.error(f"Error clearing logs: {str(e)}")
+        return jsonify(
+            {
+                'success': False,
+                'message': f'Ошибка при очистке логов: {str(e)}',
             }
         )
 

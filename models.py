@@ -597,5 +597,20 @@ def check_command_permission(role, command):
     )
 
 
+# Очистка всех логов
+def clear_all_logs():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    try:
+        cursor.execute('DELETE FROM logs')
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error clearing logs: {str(e)}")
+        return False
+    finally:
+        conn.close()
+
+
 # Инициализируем базу данных при импорте модуля
 init_db()

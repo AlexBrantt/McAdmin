@@ -402,9 +402,14 @@
                 <div class="col">
                     <div class="d-flex justify-content-between align-items-center">
                         <h3>История действий</h3>
-                        <button class="btn btn-outline-primary" onclick="refreshLogs()">
-                            <i class="bi bi-arrow-clockwise"></i> Обновить
-                        </button>
+                        <div>
+                            <button class="btn btn-outline-primary" onclick="refreshLogs()">
+                                <i class="bi bi-arrow-clockwise"></i> Обновить
+                            </button>
+                            <button class="btn btn-outline-danger ms-2" id="clearLogsBtn" style="display: none;" onclick="clearLogs()">
+                                <i class="bi bi-trash"></i> Очистить логи
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -545,6 +550,7 @@
                 const userInfo = document.getElementById('userInfo');
                 const usersBtn = document.getElementById('usersBtn');
                 const rconTabItem = document.getElementById('rconTabItem');
+                const clearLogsBtn = document.getElementById('clearLogsBtn');
                 
                 // Определяем класс для бейджа роли
                 let roleClass = '';
@@ -554,18 +560,22 @@
                     case 'superuser':
                         roleClass = 'superuser';
                         roleName = 'Суперпользователь';
+                        clearLogsBtn.style.display = 'inline-block';
                         break;
                     case 'admin':
                         roleClass = 'admin';
                         roleName = 'Администратор';
+                        clearLogsBtn.style.display = 'none';
                         break;
                     case 'moder':
                         roleClass = 'moder';
                         roleName = 'Модератор';
+                        clearLogsBtn.style.display = 'none';
                         break;
                     default:
                         roleClass = 'secondary';
                         roleName = data.role;
+                        clearLogsBtn.style.display = 'none';
                 }
                 
                 // Отображаем информацию о пользователе
@@ -1084,6 +1094,41 @@
             .catch(error => {
                 showNotification('Ошибка при загрузке логов', 'error');
                 container.innerHTML = '<div class="text-center text-danger py-5">Ошибка загрузки логов</div>';
+            });
+    }
+
+    function clearLogs() {
+        // Проверяем роль пользователя
+        fetch('/api/user_info')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.role === 'superuser') {
+                    if (confirm('Вы уверены, что хотите очистить все логи? Это действие нельзя отменить.')) {
+                        fetch('/api/logs/clear', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                showNotification(data.message, 'success');
+                                refreshLogs();
+                            } else {
+                                showNotification(data.message || 'Ошибка при очистке логов', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            showNotification('Ошибка при очистке логов', 'error');
+                        });
+                    }
+                } else {
+                    showNotification('У вас нет прав для очистки логов', 'error');
+                }
+            })
+            .catch(error => {
+                showNotification('Ошибка при проверке прав', 'error');
             });
     }
 
