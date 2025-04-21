@@ -48,11 +48,6 @@ RCON_PORT=25575
 RCON_PASSWORD=your_rcon_password
 ```
 
-5. Инициализируйте базу данных:
-```bash
-python init_db.py
-```
-
 ## Запуск
 
 ```bash
